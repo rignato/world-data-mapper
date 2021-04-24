@@ -1,10 +1,13 @@
 import React from 'react';
+import './App.css';
 import 'bulma/css/bulma.css';
-import { useQuery } 	from '@apollo/client';
+import { useQuery } from '@apollo/client';
 import { GET_DB_USER } from './gql/queries';
 import { BrowserRouter, Switch, Route, Redirect } from 'react-router-dom';
 
 import LayoutWrapper from './components/LayoutWrapper';
+import Login from './components/Login';
+import Register from './components/Register';
 
 
 const App = () => {
@@ -13,23 +16,35 @@ const App = () => {
   return (
     <BrowserRouter>
       <Switch>
-        <Route 
-          path="/"
-          render={
-            () => 
-            <LayoutWrapper> 
+        <Route exact path="/">
+          <LayoutWrapper
+            navbar
+            body={
               <div className="container has-text-centered">
                 <p className="title">
                   Welcome to the World Data Mapper.
-                </p>
+              </p>
                 <p className="subtitle">
                   To get started, login or sign up.
-                </p>
+              </p>
               </div>
-               
-            </LayoutWrapper>
-          }
-        />
+            }
+          />
+        </Route>
+        <Route path="/login">
+          <LayoutWrapper
+            body={
+              <Login />
+            }
+          />
+        </Route>
+        <Route path="/register">
+          <LayoutWrapper
+            body={
+              <Register />
+            }
+          />
+        </Route>
       </Switch>
     </BrowserRouter>
   );

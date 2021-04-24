@@ -1,42 +1,38 @@
 import React from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { Link } from 'react-router-dom';
+
+import Logo from './Logo';
 
 type Props = {
 
 };
 
 const Navbar = (props: Props) => {
-    return (
-        <nav className="navbar">
-              <div className="container">
-                <div className="navbar-brand">
-                  <a className="navbar-item icon-text is-size-3">
-                    <span className="icon">
-                        <FontAwesomeIcon icon={faGlobe} />
-                    </span>
-                    <span className="has-text-weight-medium">
-                        wdm
-                    </span>
-                  </a>
-                </div>
-                <div className="navbar-menu">
-                  <div className="navbar-end">
-                    <span className="navbar-item">
-                      <div className="buttons has-text-weight-semibold">
-                        <button className="button is-light is-outlined">
-                            Sign up
-                        </button>
-                        <button className="button is-light">
-                          Login
-                        </button>
-                        </div>
-                    </span>
-                  </div>
-                </div>
+  return (
+    <nav className="navbar">
+      <div className="container">
+        <div className="navbar-brand">
+          <Link className="navbar-item is-size-4" to="/">
+            < Logo />
+          </Link>
+        </div>
+        <div className="navbar-menu">
+          <div className="navbar-end">
+            <span className="navbar-item">
+              <div className="buttons has-text-weight-semibold">
+                <Link className="button is-light is-outlined" to="/register">
+                  Sign up
+                </Link>
+                <Link className="button is-info" to="/login">
+                  Login
+                </Link>
               </div>
-            </nav>
-    );
+            </span>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
 };
 
 export default Navbar;
