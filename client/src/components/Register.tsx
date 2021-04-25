@@ -1,103 +1,113 @@
-import React, { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEnvelope, faLock, faEye, faEyeSlash, faExclamationTriangle, faCheck } from '@fortawesome/free-solid-svg-icons';
+import React, { useEffect, useState } from 'react';
+import { faUser, faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
+import InputWithValidation from './InputWithValidation';
+import { validateEmail, validatePassword } from '../utils/utils';
+import { useHistory } from "react-router";
+
+type LocationState = {
+    message?: string,
+    messageColor?: string
+};
 
 type Props = {
 
 };
 
 const Register = (props: Props) => {
-    const [passwordVisible, setPasswordVisible] = useState(false);
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [confirmedPassword, setConfirmedPassword] = useState("");
 
+    const [nameValid, setNameValid] = useState(false);
+    const [emailValid, setEmailValid] = useState(false);
+    const [passwordValid, setPasswordValid] = useState(false);
+    const [confirmedPasswordValid, setConfirmedPasswordValid] = useState(false);
 
-    const handleChangePasswordVisibility = (e: React.MouseEvent<HTMLElement>) => {
-        setPasswordVisible(!passwordVisible);
+    const [loading, setLoading] = useState(false);
+
+    const [emailError, setEmailError] = useState(false);
+
+    const history = useHistory<LocationState>();
+
+    const handleRegister = (e: React.MouseEvent<HTMLElement>) => {
+        console.log(nameValid);
+        console.log(emailValid);
+        console.log(passwordValid);
+        console.log(confirmedPasswordValid);
+        history.push("/", {
+            message: "Account created successfully. Login to get started!",
+            messageColor: "info"
+        });
     };
-
-    const updatePassword = (e: React.FormEvent<HTMLInputElement>) => {
-        setPassword(e.currentTarget.value);
-    }
-
-    const updateConfirmedPassword = (e: React.FormEvent<HTMLInputElement>) => {
-        setConfirmedPassword(e.currentTarget.value);
-    }
 
     return (
         <div className="container">
             <div className="columns is-centered">
                 <div className="column is-half">
                     <div className="notification">
-                        <div className="field">
-                            <p className="control has-icons-left">
-                                <input className="input" type="text" placeholder="Name" />
-                                <span className="icon is-small is-left">
-                                    <FontAwesomeIcon icon={faUser} />
-                                </span>
-                            </p>
-                        </div>
-                        <div className="field">
-                            <p className="control has-icons-left">
-                                <input className="input" type="email" placeholder="Email" />
-                                <span className="icon is-small is-left">
-                                    <FontAwesomeIcon icon={faEnvelope} />
-                                </span>
-                            </p>
-                        </div>
-                        <div className="field" >
-                            <p className="control has-icons-left has-icons-right">
-                                <input
-                                    className="input"
-                                    type={passwordVisible ? "text" : "password"}
-                                    placeholder="Password"
-                                    onChange={updatePassword}
-                                />
-                                <span className="icon is-small is-left">
-                                    <FontAwesomeIcon icon={faLock} />
-                                </span>
-                                <span className="icon click-icon is-small is-right" onClick={handleChangePasswordVisibility}>
-                                    <FontAwesomeIcon
-                                        icon={passwordVisible ? faEyeSlash : faEye}
-                                    />
-                                </span>
-                            </p>
-                        </div>
-                        <div className="field" >
-                            <p className="control has-icons-left has-icons-right">
-                                <input
-                                    className={`input ${password === "" ?
-                                        "" :
-                                        password === confirmedPassword ? "is-success" : "is-danger"
-                                        }`}
-                                    type="password"
-                                    placeholder="Confirm Password"
-                                    onChange={updateConfirmedPassword}
-                                />
-                                <span className="icon is-small is-left">
-                                    <FontAwesomeIcon icon={faLock} />
-                                </span>
-                                {
-                                    password !== "" &&
-                                    <span className="icon click-icon is-small is-right">
-                                        <FontAwesomeIcon
-                                            icon={password === confirmedPassword ? faCheck : faExclamationTriangle}
-                                        />
-                                    </span>
-                                }
-                                {
-                                    password !== "" && password !== confirmedPassword && <p className="help is-danger">Passwords must match</p>
-                                }
+                        <InputWithValidation
+                            leftIcon={faUser}
+                            type="text"
+                            placeholder="Name"
+                            validator={(s: string) => { return s.length > 0 }}
+                            onValidChange={(valid: boolean) => { setNameValid(valid) }}
+                            invalidMessage="Name is required"
+                        />
+                        <InputWithValidation
+                            leftIcon={faEnvelope}
+                            type="email"
+                            placeholder="Email"
+                            validator={validateEmail}
+                            onValidChange={(valid: boolean) => { setEmailValid(valid) }}
+                            invalidMessage={emailError ? "" : "Email must be valid email address"}
+                            overrideMessage={emailError}
+                            error={emailError}
+                        />
+                        <InputWithValidation
+                            leftIcon={faLock}
+                            placeholder="Password"
+                            validator={validatePassword}
+                            onChange={setPassword}
+                            onValidChange={(valid: boolean) => { setPasswordValid(valid) }}
+                            invalidMessage="Password must be at least 8 characters"
+                            passwordViewToggle
+                        />
+                        <InputWithValidation
+                            leftIcon={faLock}
+                            type="password"
+                            placeholder="Confirm Password"
+                            validator={(confirmedPassword: String) => { return password.length > 0 && confirmedPassword === password }}
+                            onValidChange={(valid: boolean) => { setConfirmedPasswordValid(valid) }}
+                            invalidMessage="Passwords must match"
+                            overrideMessage
+                        />
+                        {
+                            emailError &&
+                            <div className="field">
+                                <label className="label help is-danger is-size-5 has-text-weight-light">An account already exists with this email address.</label>
+                            </div>
+                        }
 
-                            </p>
-                        </div>
                         <div className="field is-grouped">
                             <div className="control">
-                                <button className="button is-info">Register</button>
+                                <button
+                                    className={`button is-info ${loading ? "is-loading" : ""}`}
+                                    onClick={handleRegister}
+                                    disabled={!emailError && !(nameValid && emailValid && passwordValid && confirmedPasswordValid)}
+                                >
+                                    Register
+                                </button>
                             </div>
                             <div className="control">
-                                <Link className="button is-light" to="/">Cancel</Link>
+                                {
+                                    loading
+                                        ?
+                                        <button className="button is-light" disabled>Cancel</button>
+                                        :
+                                        <Link className="button is-light" to="/">Cancel</Link>
+                                }
+
                             </div>
                         </div>
                     </div>

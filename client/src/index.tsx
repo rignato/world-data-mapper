@@ -4,7 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { ApolloProvider, ApolloClient, InMemoryCache } from '@apollo/client';
-
+require('dotenv').config();
 const { BACKEND_PORT } = process.env;
 
 const cache = new InMemoryCache({
@@ -19,7 +19,7 @@ const cache = new InMemoryCache({
 		Query: {
 			fields: {
 				getAllEntries: {
-					merge(existing, incoming){
+					merge(existing, incoming) {
 						return incoming
 					}
 				},
@@ -39,12 +39,12 @@ const client = new ApolloClient({
 });
 
 ReactDOM.render(
-  <React.StrictMode>
-    <ApolloProvider client={client}>
-      <App />
-    </ApolloProvider>
-  </React.StrictMode>,
-  document.getElementById('root')
+	<React.StrictMode>
+		<ApolloProvider client={client}>
+			<App />
+		</ApolloProvider>
+	</React.StrictMode>,
+	document.getElementById('root')
 );
 
 // If you want to start measuring performance in your app, pass a function

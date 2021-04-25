@@ -13,7 +13,7 @@ const Navbar = (props: Props) => {
       <div className="container">
         <div className="navbar-brand">
           <Link className="navbar-item is-size-4" to="/">
-            < Logo />
+            < Logo text />
           </Link>
         </div>
         <div className="navbar-menu">
