@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { sign, verify } from "jsonwebtoken";
-import User from '../models/user-model';
+import { UserModel } from '../schemas/User';
 require('dotenv').config();
 const { REFRESH_TOKEN_SECRET, ACCESS_TOKEN_SECRET } = process.env;
 
-type RequestWithUserId = { userId?: string } & Request;
+export type RequestWithUserId = { userId?: string } & Request;
 
 type Token = {
     userId: string,
     refreshCount: number
-}
+};
 
 type DataWithUserId = Token & object;
 
@@ -25,13 +25,13 @@ const validateToken = (token: string, secret: string) => {
 export const generateTokens = (userId: string, refreshCount: number) => {
     const refreshToken = sign(
         { userId: userId, refreshCount: refreshCount },
-        REFRESH_TOKEN_SECRET,
+        REFRESH_TOKEN_SECRET!,
         { expiresIn: "7d" }
     );
 
     const accessToken = sign(
         { userId: userId },
-        ACCESS_TOKEN_SECRET,
+        ACCESS_TOKEN_SECRET!,
         { expiresIn: "1h" }
     );
 
@@ -46,10 +46,10 @@ export const validateIncomingTokens = async (req: RequestWithUserId, res: Respon
         return next();
 
     // Try to validate access token
-    let data = validateToken(incomingAccessToken, ACCESS_TOKEN_SECRET);
+    let data = validateToken(incomingAccessToken, ACCESS_TOKEN_SECRET!);
 
     // If it validates attach the userId to request and go to next middleware function
-    if (data.userId !== null) {
+    if (data !== null) {
         req.userId = data.userId;
         return next();
     }
@@ -59,22 +59,22 @@ export const validateIncomingTokens = async (req: RequestWithUserId, res: Respon
         return next();
 
     // If it fails try to validate refresh token
-    data = validateToken(incomingRefreshToken, REFRESH_TOKEN_SECRET);
+    data = validateToken(incomingRefreshToken, REFRESH_TOKEN_SECRET!);
 
     // If it fails again, we go to next middleware function
-    if (data.userId === null)
+    if (data === null)
         return next();
 
     // If it validates successfully, check if user is valid 
 
-    const user = User.findById(data.userId);
+    const user = UserModel.findById(data.userId);
 
     // If user invalid or token invalid (refresh count doesn't match)
-    if (!user || data.refreshCount !== user.refresh_count)
+    if (!user || data.refreshCount !== user.refreshCount)
         return next();
 
     // Update refresh count for that user
-    await User.updateOne({ _id: data.userId }, { refresh_count: data.refreshCount + 1 });
+    await UserModel.updateOne({ _id: data.userId }, { refreshCount: data.refreshCount + 1 });
 
     // Generate new tokens
     const {

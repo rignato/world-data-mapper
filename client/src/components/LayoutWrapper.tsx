@@ -27,7 +27,7 @@ const LayoutWrapper = ({ navbar, titleText, body }: Props) => {
     };
 
     return (
-        <section className="hero is-dark is-fullheight ">
+        <section className="hero welcome-screen is-dark is-fullheight ">
             {
                 location.state && showMessage &&
                 <div className={`notification is-${location.state.messageColor || "info"} is-light columns is-centered is-size-5`}>

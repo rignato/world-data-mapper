@@ -2,13 +2,13 @@ import React from 'react';
 import './App.css';
 import 'bulma/css/bulma.css';
 import { useQuery } from '@apollo/client';
-import { GET_DB_USER } from './gql/queries';
+import { GET_DB_USER } from './gql/userQueries';
 import { BrowserRouter, Switch, Route, Redirect, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import { StaticContext } from 'react-router';
 
 import LayoutWrapper from './components/LayoutWrapper';
-import Login from './components/Login';
 import Register from './components/Register';
+import Login from './components/Login';
 
 type LocationState = {
   message?: string,
@@ -25,7 +25,7 @@ const App = () => {
           <LayoutWrapper
             navbar
             body={
-              <div className="container has-text-centered">
+              <div className="container has-text-centered" >
                 <p className="title has-text-weight-medium">
                   Welcome to the World Data Mapper.
                 </p>

@@ -1,4 +1,23 @@
 .click-icon { 
   pointer-events: all !important; 
   cursor: pointer;
-};
+}
+  
+.welcome-screen {
+  position: relative;
+}
+
+.welcome-screen::before {
+  content: "";
+  background-image: url("./media/maps.jpg");
+  background-repeat: no-repeat;
+  background-position-x: center;
+  background-size: cover;
+  
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+  opacity: 0.20;
+}

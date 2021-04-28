@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
+import { useMutation } from '@apollo/client';
+import { useHistory } from "react-router";
+
+import { ILogin } from '../types/User';
+
+import { LOGIN } from '../gql/userMutations';
 
 type Props = {
 
@@ -14,6 +20,10 @@ const Login = (props: Props) => {
 
     const [error, setError] = useState(false);
 
+    const [login] = useMutation<ILogin>(LOGIN);
+
+    const history = useHistory();
+
     const updateEmail = (e: React.FormEvent<HTMLInputElement>) => {
         setEmail(e.currentTarget.value);
     };
@@ -22,8 +32,14 @@ const Login = (props: Props) => {
         setPassword(e.currentTarget.value);
     };
 
-    const handleLogin = (e: React.MouseEvent<HTMLElement>) => {
-        setError(true);
+    const handleLogin = () => {
+        const res = login({ variables: { email: email, password: password } });
+
+        if ("error" in res) {
+            setError(res["error"]);
+        } else {
+            history.push("/");
+        }
     };
 
     return (

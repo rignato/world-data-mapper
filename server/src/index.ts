@@ -1,31 +1,37 @@
 import { ApolloServer } from 'apollo-server-express';
+import 'reflect-metadata';
 
-import * as express from 'express';
-import * as mongoose from 'mongoose';
+import express from 'express';
+import mongoose from 'mongoose';
 import * as _ from 'lodash';
-import * as cookieParser from 'cookie-parser';
-import * as cors from 'cors';
-import * as helmet from 'helmet';
-import * as morgan from 'morgan';
-import * as xssClean from 'xss-clean';
-import * as mongoSanitize from 'express-mongo-sanitize';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import mongoSanitize from 'express-mongo-sanitize';
+const xssClean = require('xss-clean');
 
-import { userDefs } from './typedefs/userDefs';
-import { userResolvers } from './resolvers/userResolvers';
+import { UserResolvers } from './resolvers/userResolvers';
 
 import { validateIncomingTokens } from './utils/auth';
+
+import { buildSchema } from 'type-graphql';
 require('dotenv').config();
 const { MONGO_URI, BACKEND_PORT, CLIENT_LOCAL_ORIGIN, SERVER_LOCAL_DOMAIN } = process.env;
 
 const start = async () => {
+    const schema = await buildSchema({
+        resolvers: [UserResolvers],
+        emitSchemaFile: true,
+        validate: false
+    });
     const server = new ApolloServer({
-        typeDefs: [userDefs],
-        resolvers: _.merge({}, userResolvers),
+        schema: schema,
         context: ({ req, res }) => ({ req, res })
     });
 
     try {
-        await mongoose.connect(MONGO_URI, {
+        await mongoose.connect(MONGO_URI!, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             useFindAndModify: true
@@ -56,7 +62,7 @@ const start = async () => {
 
     server.applyMiddleware({ app, cors: false });
 
-    app.listen(parseInt(BACKEND_PORT), () => {
+    app.listen(BACKEND_PORT, () => {
         console.log(`Server ready at ${SERVER_LOCAL_DOMAIN}:${BACKEND_PORT}`);
     })
 };
