@@ -62,7 +62,7 @@ const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback
                     </div>
 
                     <div className="level-item">
-                        <div className="button is-light is-info has-text-info" onClick={handleDelete}>
+                        <div className="button is-light is-danger has-text-danger-dark" onClick={handleDelete}>
                             <span className="icon" >
                                 <FontAwesomeIcon icon={farTrashAlt} size="lg" />
                             </span>

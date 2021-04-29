@@ -85,7 +85,7 @@ const MapSelect = ({ user, fadeIn }: Props) => {
                     }
                 </div>
                 <div className="panel-block">
-                    <button className="button is-info" onClick={handleAddMap}>
+                    <button className="button is-info is-light" onClick={handleAddMap}>
                         <span className="icon-text level">
                             <span className="level-item has-text-weight-semibold">Add new map</span>
                             <span className="icon level-item">
