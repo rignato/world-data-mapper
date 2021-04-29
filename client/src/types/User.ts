@@ -1,20 +1,13 @@
+import { Error, StatusResult } from './Utils';
+
 export type User = {
     name: string;
     email: string;
-}
-
-export type Error = {
-    error: string;
-}
-
-export type StatusResult = {
-    success: boolean;
-    error?: string;
-}
+};
 
 export type UserResult = User | Error;
 
-export type GetUser = {
+export type IGetUser = {
     getUser: UserResult;
 };
 

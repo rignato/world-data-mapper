@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { faUser, faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
 import InputWithValidation from './InputWithValidation';
 import { validateEmail, validatePassword } from '../utils/utils';
 import { useHistory } from "react-router";
+
+import { IRegister } from '../types/User';
+import { REGISTER } from '../gql/userMutations';
+import { useMutation } from '@apollo/client';
 
 type LocationState = {
     message?: string,
@@ -26,15 +30,37 @@ const Register = (props: Props) => {
 
     const [loading, setLoading] = useState(false);
 
-    const [emailError, setEmailError] = useState(false);
+    const [error, setError] = useState("");
 
     const history = useHistory<LocationState>();
 
-    const handleRegister = (e: React.MouseEvent<HTMLElement>) => {
+    const [register] = useMutation<IRegister>(REGISTER);
+
+    const handleRegister = async () => {
         console.log(nameValid);
         console.log(emailValid);
         console.log(passwordValid);
         console.log(confirmedPasswordValid);
+        setLoading(true);
+        const { data } = await register({
+            variables: {
+                name: name,
+                email: email,
+                password: password
+            }
+        });
+        if (!data) {
+            setError("Unknown error occurred, please try again");
+            return;
+        }
+        setLoading(false);
+
+        const registerStatus = data.register;
+
+        if (registerStatus.error) {
+            setError(registerStatus.error)
+            return;
+        }
         history.push("/", {
             message: "Account created successfully. Login to get started!",
             messageColor: "info"
@@ -50,6 +76,7 @@ const Register = (props: Props) => {
                             leftIcon={faUser}
                             type="text"
                             placeholder="Name"
+                            onChange={setName}
                             validator={(s: string) => { return s.length > 0 }}
                             onValidChange={(valid: boolean) => { setNameValid(valid) }}
                             invalidMessage="Name is required"
@@ -59,10 +86,14 @@ const Register = (props: Props) => {
                             type="email"
                             placeholder="Email"
                             validator={validateEmail}
+                            onChange={(email) => {
+                                setEmail(email);
+                                setError("");
+                            }}
                             onValidChange={(valid: boolean) => { setEmailValid(valid) }}
-                            invalidMessage={emailError ? "" : "Email must be valid email address"}
-                            overrideMessage={emailError}
-                            error={emailError}
+                            invalidMessage={error ? "" : "Email must be valid email address"}
+                            overrideMessage={error.length > 0}
+                            error={error}
                         />
                         <InputWithValidation
                             leftIcon={faLock}
@@ -83,9 +114,9 @@ const Register = (props: Props) => {
                             overrideMessage
                         />
                         {
-                            emailError &&
+                            error.length > 0 &&
                             <div className="field">
-                                <label className="label help is-danger is-size-5 has-text-weight-light">An account already exists with this email address.</label>
+                                <label className="label help is-danger is-size-5 has-text-weight-light">{error}</label>
                             </div>
                         }
 
@@ -94,7 +125,7 @@ const Register = (props: Props) => {
                                 <button
                                     className={`button is-info ${loading ? "is-loading" : ""}`}
                                     onClick={handleRegister}
-                                    disabled={!emailError && !(nameValid && emailValid && passwordValid && confirmedPasswordValid)}
+                                    disabled={!error && !(nameValid && emailValid && passwordValid && confirmedPasswordValid)}
                                 >
                                     Register
                                 </button>

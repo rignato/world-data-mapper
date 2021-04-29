@@ -13,7 +13,7 @@ type Props = {
     invalidMessage: string,
     passwordViewToggle?: boolean,
     overrideMessage?: boolean,
-    error?: boolean
+    error?: string
 };
 
 const InputWithValidation = (props: Props) => {

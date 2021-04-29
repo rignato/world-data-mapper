@@ -7,6 +7,8 @@ import { generateTokens } from '../utils/auth';
 import { UserResult, UserModel, User } from '../schemas/User';
 import { StatusResult, Error } from '../schemas/Utils';
 import { Types } from 'mongoose';
+require('dotenv').config();
+const { SALT_LENGTH } = process.env;
 
 @Resolver()
 export class UserResolvers {
@@ -27,7 +29,7 @@ export class UserResolvers {
         @Arg("password", { nullable: false }) password: string,
         @Ctx("res") res: Response
     ) {
-        const user = await UserModel.findOne({ email: email });
+        const user = await UserModel.findOne({ email: email.toLocaleLowerCase() });
         if (!user)
             return { error: "Incorrect email or password." };
 
@@ -55,18 +57,18 @@ export class UserResolvers {
         @Arg("email", { nullable: false }) email: string,
         @Arg("password", { nullable: false }) password: string
     ) {
-        const exists = await UserModel.findOne({ email: email });
+        const exists = await UserModel.findOne({ email: email.toLocaleLowerCase() });
         if (exists)
             return {
                 success: false,
                 error: "An account already exists with this email address."
             };
 
-        const hashedPassword = await bcrypt.hash(password, 12);
+        const hashedPassword = await bcrypt.hash(password, parseInt(SALT_LENGTH!));
         await UserModel.create({
             _id: new Types.ObjectId(),
             name: name,
-            email: email,
+            email: email.toLocaleLowerCase(),
             password: hashedPassword,
             refreshCount: 0
         });
@@ -99,7 +101,7 @@ export class UserResolvers {
 
         const updateSuccess = await UserModel.updateOne({ _id: req.userId }, {
             name: name,
-            email: email
+            email: email.toLocaleLowerCase()
         });
 
         if (updateSuccess)
@@ -133,7 +135,7 @@ export class UserResolvers {
                 error: "Invalid old password."
             };
 
-        const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+        const hashedNewPassword = await bcrypt.hash(newPassword, parseInt(SALT_LENGTH!));
 
         const updateSuccess = await UserModel.updateOne({ _id: req.userId }, {
             password: hashedNewPassword

@@ -5,7 +5,9 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { ApolloProvider, ApolloClient, InMemoryCache } from '@apollo/client';
 require('dotenv').config();
-const { BACKEND_PORT } = process.env;
+const { REACT_APP_BACKEND_PORT } = process.env;
+
+console.log(process.env);
 
 const cache = new InMemoryCache({
 
@@ -29,7 +31,7 @@ const cache = new InMemoryCache({
 });
 
 // bad hardcoding, localhost port should match port in the backend's .env file
-const BACKEND_LOCATION = `http://localhost:${BACKEND_PORT}/graphql`;
+const BACKEND_LOCATION = `http://localhost:${REACT_APP_BACKEND_PORT}/graphql`;
 
 const client = new ApolloClient({
 	uri: BACKEND_LOCATION,

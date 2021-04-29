@@ -7,15 +7,29 @@ type Error {
   error: String!
 }
 
+type Map {
+  _id: ID!
+  name: String!
+}
+
+type Maps {
+  error: String
+  maps: [Map!]!
+}
+
 type Mutation {
+  addMap: StatusResult!
+  deleteMap(_id: String!): StatusResult!
   login(email: String!, password: String!): UserResult!
   logout: StatusResult!
   register(email: String!, name: String!, password: String!): StatusResult!
+  renameMap(_id: String!, name: String!): StatusResult!
   update(email: String!, name: String!, password: String!): StatusResult!
   updatePassword(newPassword: String!, oldPassword: String!): StatusResult!
 }
 
 type Query {
+  getAllMaps: Maps!
   getUser: UserResult!
 }
 

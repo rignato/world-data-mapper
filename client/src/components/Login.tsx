@@ -2,23 +2,23 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
-import { useMutation } from '@apollo/client';
+import { ApolloQueryResult, OperationVariables, useMutation } from '@apollo/client';
 import { useHistory } from "react-router";
 
-import { ILogin } from '../types/User';
+import { IGetUser, ILogin } from '../types/User';
 
 import { LOGIN } from '../gql/userMutations';
 
 type Props = {
-
+    refetchUser: (variables?: Partial<OperationVariables> | undefined) => Promise<ApolloQueryResult<IGetUser>>
 };
 
-const Login = (props: Props) => {
+const Login = ({ refetchUser }: Props) => {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-
-    const [error, setError] = useState(false);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const [login] = useMutation<ILogin>(LOGIN);
 
@@ -32,14 +32,26 @@ const Login = (props: Props) => {
         setPassword(e.currentTarget.value);
     };
 
-    const handleLogin = () => {
-        const res = login({ variables: { email: email, password: password } });
+    const handleLogin = async () => {
+        setLoading(true);
+        const { data } = await login({ variables: { email: email, password: password } });
+        setLoading(false);
 
-        if ("error" in res) {
-            setError(res["error"]);
-        } else {
-            history.push("/");
+        if (!data) {
+            setError("Unknown error occurred, please try again");
+            return;
         }
+
+        const user = data.login;
+
+        if ("error" in user) {
+            setError(user.error);
+            return;
+        }
+        await refetchUser();
+        history.push("/maps", {
+            justLoggedIn: true
+        });
     };
 
     return (
@@ -64,15 +76,15 @@ const Login = (props: Props) => {
                             </p>
                         </div>
                         {
-                            error &&
+                            error.length > 0 &&
                             <div className="field">
-                                <label className="label help is-danger is-size-5 has-text-weight-light">Incorrect email or password.</label>
+                                <label className="label help is-danger is-size-5 has-text-weight-light">{error}</label>
                             </div>
                         }
 
                         <div className="field is-grouped">
                             <div className="control">
-                                <button className="button is-info" onClick={handleLogin} disabled={email.length === 0 || password.length === 0}>Login</button>
+                                <button className={`button is-info ${loading ? "is-loading" : ""}`} onClick={handleLogin} disabled={email.length === 0 || password.length === 0}>Login</button>
                             </div>
                             <div className="control">
                                 <Link className="button is-light" to="/">Cancel</Link>

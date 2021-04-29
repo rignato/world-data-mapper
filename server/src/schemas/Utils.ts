@@ -12,5 +12,5 @@ export class StatusResult {
     success: boolean;
 
     @Field({ defaultValue: "" })
-    error?: string;
+    error: string;
 }

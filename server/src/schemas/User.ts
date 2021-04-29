@@ -28,7 +28,7 @@ export const UserResult = createUnionType({
     name: 'UserResult',
     types: () => [User, Error],
     resolveType: data => {
-        if ("errorMessage" in data) {
+        if ("error" in data) {
             return Error;
         } else {
             return User;

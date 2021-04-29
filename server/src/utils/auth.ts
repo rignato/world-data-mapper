@@ -45,6 +45,9 @@ export const validateIncomingTokens = async (req: RequestWithUserId, res: Respon
     if (!incomingAccessToken && !incomingRefreshToken)
         return next();
 
+    // console.log(`incoming access token: ${incomingAccessToken}`);
+    // console.log(`incoming refresh token: ${incomingRefreshToken}`);
+
     // Try to validate access token
     let data = validateToken(incomingAccessToken, ACCESS_TOKEN_SECRET!);
 
@@ -67,7 +70,7 @@ export const validateIncomingTokens = async (req: RequestWithUserId, res: Respon
 
     // If it validates successfully, check if user is valid 
 
-    const user = UserModel.findById(data.userId);
+    const user = await UserModel.findById(data.userId);
 
     // If user invalid or token invalid (refresh count doesn't match)
     if (!user || data.refreshCount !== user.refreshCount)
