@@ -7,10 +7,13 @@ import LayoutWrapper from './components/LayoutWrapper';
 import Register from './components/Register';
 import Login from './components/Login';
 import { useQuery } from '@apollo/client';
-import { IGetUser } from './types/User';
+import { IGetUser, User } from './types/User';
 import { GET_USER } from './gql/userQueries';
 import Loader from 'react-loader-spinner';
 import MapSelect from './components/MapSelect';
+import RegionTable from './components/RegionTable';
+import RegionViewer from './components/RegionViewer';
+import UpdateAccount from './components/UpdateAccount';
 
 const App = () => {
 
@@ -34,7 +37,7 @@ const App = () => {
         setFadeOut(false);
         setLoadingEnd(true);
         setFadeIn(true);
-      }, 1000);
+      }, 500);
     }
   }, [fadeOut]);
 
@@ -42,7 +45,7 @@ const App = () => {
     if (fadeIn) {
       setTimeout(() => {
         setFadeIn(false);
-      }, 1000);
+      }, 500);
     }
   }, [fadeIn]);
 
@@ -57,6 +60,8 @@ const App = () => {
             :
             <Redirect exact from="/" to={{ pathname: "/maps" }} />
         }
+
+
         <Route exact path="/">
           <LayoutWrapper
             navbar
@@ -78,24 +83,46 @@ const App = () => {
         </Route>
         <Route exact path="/maps">
           <LayoutWrapper
-            centered
             navbar={!userLoading && loadingEnd}
             user={userData?.getUser}
             refetchUser={refetchUser}
-            body={
-              (userLoading || loadingStart) && !loadingEnd ?
-                <div className="container has-text-centered" >
-                  <Loader color="#FFF" type="ThreeDots" />
-                </div>
-                : (fadeOut || !loadingEnd) ?
-                  <div className="container has-text-centered fade-out" >
-                    <Loader color="#FFF" type="ThreeDots" />
-                  </div>
-                  :
-                  <MapSelect user={userData?.getUser} fadeIn={fadeIn} />
-            }
+            pageLoadingScreen
+            userLoading={userLoading}
+            loadingStart={loadingStart}
+            loadingEnd={loadingEnd}
+            fadeOut={fadeOut}
+            body={<MapSelect user={userData?.getUser} fadeIn={fadeIn} />}
           />
         </Route>
+
+        <Route exact path="/maps/:mapId">
+          <LayoutWrapper
+            navbar={!userLoading && loadingEnd}
+            user={userData?.getUser}
+            refetchUser={refetchUser}
+            pageLoadingScreen
+            userLoading={userLoading}
+            loadingStart={loadingStart}
+            loadingEnd={loadingEnd}
+            fadeOut={fadeOut}
+            body={<RegionTable />}
+          />
+        </Route>
+
+        <Route exact path="/maps/:mapId/view">
+          <LayoutWrapper
+            navbar={!userLoading && loadingEnd}
+            user={userData?.getUser}
+            refetchUser={refetchUser}
+            pageLoadingScreen
+            userLoading={userLoading}
+            loadingStart={loadingStart}
+            loadingEnd={loadingEnd}
+            fadeOut={fadeOut}
+            body={<RegionViewer />}
+          />
+        </Route>
+
         <Route path="/login">
           <LayoutWrapper
             user={userData?.getUser}
@@ -118,6 +145,22 @@ const App = () => {
             }
           />
         </Route>
+        {
+          (!userLoading && (!userData?.getUser || ("error" in userData?.getUser))) ?
+            <Redirect exact from="/account" to={{ pathname: "/login" }} /> :
+            <Route path="/account">
+              <LayoutWrapper
+                user={userData?.getUser}
+                refetchUser={refetchUser}
+                titleText="Update your account info."
+                showGlobe
+                body={
+                  <UpdateAccount user={userData?.getUser as User} refetch={refetchUser} />
+                }
+              />
+            </Route>
+        }
+
       </Switch>
     </BrowserRouter>
   );

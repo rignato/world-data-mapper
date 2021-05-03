@@ -1,13 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { sign, verify } from "jsonwebtoken";
+import { Types } from 'mongoose';
 import { UserModel } from '../schemas/User';
 require('dotenv').config();
 const { REFRESH_TOKEN_SECRET, ACCESS_TOKEN_SECRET } = process.env;
 
-export type RequestWithUserId = { userId?: string } & Request;
+export type RequestWithUserId = { userId?: Types.ObjectId } & Request;
 
 type Token = {
-    userId: string,
+    userId: Types.ObjectId,
     refreshCount: number
 };
 
@@ -22,7 +23,7 @@ const validateToken = (token: string, secret: string) => {
     }
 };
 
-export const generateTokens = (userId: string, refreshCount: number) => {
+export const generateTokens = (userId: Types.ObjectId, refreshCount: number) => {
     const refreshToken = sign(
         { userId: userId, refreshCount: refreshCount },
         REFRESH_TOKEN_SECRET!,

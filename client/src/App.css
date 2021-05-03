@@ -9,6 +9,17 @@
   margin: auto;
 }
 
+.map-select-container {
+  min-height: 25rem;
+  height: 25rem;
+  max-height: 25rem;
+}
+
+.table-body-container {
+  min-height: 33rem;
+  height: 33rem;
+}
+
 .is-scrollable {
   overflow-y: scroll;
   position: absolute;
@@ -23,6 +34,7 @@
   
 .welcome-screen {
   position: relative;
+  
 }
 
 .welcome-screen::before {
@@ -38,7 +50,6 @@
       -ms-animation: globe-fadein 1s; /* Internet Explorer */
        -o-animation: globe-fadein 1s; /* Opera < 12.1 */
           animation: globe-fadein 1s;
-  
   position: absolute;
   top: 0px;
   right: 0px;
@@ -52,20 +63,20 @@
 }
 
 .fade-out {
-  -webkit-animation: fadeout 0.5s; /* Safari, Chrome and Opera > 12.1 */
-     -moz-animation: fadeout 0.5s; /* Firefox < 16 */
-      -ms-animation: fadeout 0.5s; /* Internet Explorer */
-       -o-animation: fadeout 0.5s; /* Opera < 12.1 */
-          animation: fadeout 0.5s;
+  -webkit-animation: fadeout 0.25s; /* Safari, Chrome and Opera > 12.1 */
+     -moz-animation: fadeout 0.25s; /* Firefox < 16 */
+      -ms-animation: fadeout 0.25s; /* Internet Explorer */
+       -o-animation: fadeout 0.25s; /* Opera < 12.1 */
+          animation: fadeout 0.25s;
   opacity: 0;
 }
 
 .fade-in {
-  -webkit-animation: fadein 1s; /* Safari, Chrome and Opera > 12.1 */
-     -moz-animation: fadein 1s; /* Firefox < 16 */
-      -ms-animation: fadein 1s; /* Internet Explorer */
-       -o-animation: fadein 1s; /* Opera < 12.1 */
-          animation: fadein 1s;
+  -webkit-animation: fadein 0.25s; /* Safari, Chrome and Opera > 12.1 */
+     -moz-animation: fadein 0.25s; /* Firefox < 16 */
+      -ms-animation: fadein 0.25s; /* Internet Explorer */
+       -o-animation: fadein 0.25s; /* Opera < 12.1 */
+          animation: fadein 0.25s;
   opacity: 1;
 }
 

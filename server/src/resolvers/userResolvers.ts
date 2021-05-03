@@ -37,7 +37,7 @@ export class UserResolvers {
         if (!validPassword)
             return { error: "Incorrect email or password." };
 
-        const { accessToken, refreshToken } = generateTokens(user._id.toString(), user.refreshCount);
+        const { accessToken, refreshToken } = generateTokens(user._id, user.refreshCount);
         res.cookie('access-token', accessToken, { httpOnly: true, sameSite: 'none', secure: true });
         res.cookie('refresh-token', refreshToken, { httpOnly: true, sameSite: 'none', secure: true });
 
@@ -83,6 +83,9 @@ export class UserResolvers {
         @Arg("password", { nullable: false }) password: string,
         @Ctx("req") req: RequestWithUserId
     ) {
+        if (!req.userId)
+            return { error: "No current user in session." };
+
         const user = await UserModel.findById(req.userId);
 
         if (!user)
@@ -96,7 +99,15 @@ export class UserResolvers {
         if (!validPassword)
             return {
                 success: false,
-                error: "Invalid password."
+                error: "Invalid current password."
+            };
+
+        const exists = await UserModel.findOne({ email: email.toLocaleLowerCase() });
+
+        if (exists && !exists._id.equals(req.userId))
+            return {
+                success: false,
+                error: "An account already exists with this email address."
             };
 
         const updateSuccess = await UserModel.updateOne({ _id: req.userId }, {
@@ -132,7 +143,7 @@ export class UserResolvers {
         if (!validPassword)
             return {
                 success: false,
-                error: "Invalid old password."
+                error: "Invalid current password."
             };
 
         const hashedNewPassword = await bcrypt.hash(newPassword, parseInt(SALT_LENGTH!));

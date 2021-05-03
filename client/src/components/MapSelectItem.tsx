@@ -4,12 +4,13 @@ import { faTrashAlt, faTimes, faEdit } from '@fortawesome/free-solid-svg-icons';
 import { faTrashAlt as farTrashAlt, faEdit as farEdit } from '@fortawesome/free-regular-svg-icons';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Map } from '../types/Map';
 
 type Props = {
     name: string,
     _id: string,
     renameCallback: (_id: string, name: string) => Promise<void>,
-    deleteCallback: (_id: string) => Promise<void>
+    deleteCallback: (map: Map) => void
 }
 
 const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback }: Props) => {
@@ -30,11 +31,11 @@ const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback
     };
 
     const handleDelete = async (e: React.MouseEvent<HTMLElement>) => {
-        await deleteCallback(_id);
+        await deleteCallback({ _id: _id, name: name });
     }
 
     return (
-        <a className="panel-block" >
+        <a className="panel-block panel-map-item" >
             <div className="level">
                 <div className="level-left">
                     <div className="level-item">
@@ -43,7 +44,7 @@ const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback
                                 ?
                                 <input className="input is-size-5" type="text" placeholder="Enter map name" defaultValue={name} onBlur={handleEditingName} autoFocus={true} />
                                 :
-                                <button className="button is-ghost has-text-dark is-size-5">{name}</button>
+                                <Link to={`/maps/${_id}`}><button className="button is-ghost has-text-dark is-size-5">{name}</button></Link>
                         }
                     </div>
 

@@ -17,12 +17,13 @@ import { validateIncomingTokens } from './utils/auth';
 
 import { buildSchema } from 'type-graphql';
 import { MapResolvers } from './resolvers/mapResolvers';
+import { RegionResolvers } from './resolvers/regionResolvers';
 require('dotenv').config();
 const { MONGO_URI, BACKEND_PORT, CLIENT_LOCAL_ORIGIN, SERVER_LOCAL_DOMAIN } = process.env;
 
 const start = async () => {
     const schema = await buildSchema({
-        resolvers: [UserResolvers, MapResolvers],
+        resolvers: [UserResolvers, MapResolvers, RegionResolvers],
         emitSchemaFile: true,
         validate: false
     });
@@ -34,7 +35,8 @@ const start = async () => {
     try {
         await mongoose.connect(MONGO_URI!, {
             useNewUrlParser: true,
-            useUnifiedTopology: true
+            useUnifiedTopology: true,
+            useCreateIndex: true
         });
     } catch (error) {
         console.log(error);

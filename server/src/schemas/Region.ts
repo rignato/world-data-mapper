@@ -1,33 +1,93 @@
 import { Types } from 'mongoose';
 import { Error } from './Utils';
 
-import { ObjectType, Field, createUnionType } from "type-graphql";
-import { prop as Prop, getModelForClass } from "@typegoose/typegoose";
+import { ObjectType, Field, createUnionType, ID } from "type-graphql";
+import { index as Index, prop as Prop, getModelForClass, Severity, ModelOptions } from "@typegoose/typegoose";
 
 @ObjectType()
+export class Map {
+    @Field(() => ID)
+    _id: string;
+
+    @Field()
+    name: string;
+}
+
+@ObjectType()
+export class Maps {
+    @Field(() => [Map], { defaultValue: [] })
+    maps: Map[];
+
+    @Field({ defaultValue: "" })
+    error: string;
+
+    @Field({ defaultValue: 0 })
+    totalPageCount: number;
+}
+
+@ObjectType()
+@ModelOptions({ options: { allowMixed: Severity.ALLOW } })
 export class Region {
     @Prop()
+    @Field(() => ID)
     _id: Types.ObjectId;
+
+    @Prop()
+    ownerId: Types.ObjectId;
+
+    @Field(() => [String])
+    @Prop(() => [Types.ObjectId])
+    path: Types.ObjectId[];
+
+    @Field(() => [String])
+    @Prop(() => [String])
+    displayPath: string[];
 
     @Field()
     @Prop()
     name: string;
 
-    @Field()
-    @Prop()
-    capital: string;
+    @Field({ defaultValue: "" })
+    @Prop({ default: "" })
+    capital?: string;
 
-    @Field()
-    @Prop()
-    leader: string;
+    @Field({ defaultValue: "" })
+    @Prop({ default: "" })
+    leader?: string;
 
-    @Field()
+    @Field(() => [String], { defaultValue: [] })
     @Prop({ default: [] })
-    landmarks: string[];
+    landmarks?: string[];
 
     @Field()
-    @Prop({ default: [] })
-    children: Region[];
+    subregionCount?: number
 }
+
+@ObjectType()
+export class Regions {
+    @Field(() => [Region], { defaultValue: [] })
+    regions: Region[];
+
+    @Field({ defaultValue: "" })
+    error: string;
+
+    @Field({ defaultValue: 0 })
+    totalPageCount: number;
+
+    @Field(() => [String], { defaultValue: [] })
+    displayPath?: string[]
+}
+
+export const RegionResult = createUnionType({
+    name: 'RegionResult',
+    types: () => [Region, Error],
+    resolveType: data => {
+        if ("error" in data) {
+            return Error;
+        } else {
+            return Region;
+        }
+    }
+});
 
 export const RegionModel = getModelForClass(Region);

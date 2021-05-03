@@ -14,11 +14,13 @@ type Map {
 
 type Maps {
   error: String
-  maps: [Map!]!
+  maps: [Map!]
+  totalPageCount: Float
 }
 
 type Mutation {
-  addMap: StatusResult!
+  addMap(name: String!): StatusResult!
+  addRegion(parentId: String!): StatusResult!
   deleteMap(_id: String!): StatusResult!
   login(email: String!, password: String!): UserResult!
   logout: StatusResult!
@@ -29,8 +31,30 @@ type Mutation {
 }
 
 type Query {
-  getAllMaps: Maps!
+  getMaps(page: Int = 1, perPage: Int = 10): Maps!
+  getRegionById(_id: String!): RegionResult!
+  getRegions(page: Int = 1, parentId: String!, perPage: Int = 10): Regions!
   getUser: UserResult!
+}
+
+type Region {
+  _id: ID!
+  capital: String
+  displayPath: [String!]!
+  landmarks: [String!]
+  leader: String
+  name: String!
+  path: [String!]!
+  subregionCount: Float!
+}
+
+union RegionResult = Error | Region
+
+type Regions {
+  displayPath: [String!]
+  error: String
+  regions: [Region!]
+  totalPageCount: Float
 }
 
 type StatusResult {

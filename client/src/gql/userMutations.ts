@@ -43,7 +43,7 @@ export const UPDATE = gql`
 
 export const UPDATE_PASSWORD = gql`
     mutation UpdatePassword($oldPassword: String!, $newPassword: String!) {
-        updatePassword(old_password: $oldPassword, newPassword: $newPassword) {
+        updatePassword(oldPassword: $oldPassword, newPassword: $newPassword) {
             success
             error
         }

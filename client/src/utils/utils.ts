@@ -1,3 +1,7 @@
+import { useLocation } from "react-router";
+
+import Location from "react-router-dom";
+
 const emailPattern = new RegExp("^[^@]+@[^@]+[.][^@]{2,}$");
 
 export const validateEmail = (email: string) => {
@@ -6,4 +10,4 @@ export const validateEmail = (email: string) => {
 
 export const validatePassword = (password: string) => {
     return password.length >= 8;
-}
+};

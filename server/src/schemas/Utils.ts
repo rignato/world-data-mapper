@@ -1,4 +1,4 @@
-import { ObjectType, Field, createUnionType } from "type-graphql";
+import { ObjectType, Field, Int } from "type-graphql";
 
 @ObjectType()
 export class Error {
@@ -10,6 +10,15 @@ export class Error {
 export class StatusResult {
     @Field()
     success: boolean;
+
+    @Field({ defaultValue: "" })
+    error: string;
+}
+
+@ObjectType()
+export class IntResult {
+    @Field(() => Int)
+    result: Number;
 
     @Field({ defaultValue: "" })
     error: string;

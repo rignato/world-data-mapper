@@ -1,8 +1,8 @@
 import { gql } from "@apollo/client";
 
 export const ADD_MAP = gql`
-    mutation AddMap {
-        addMap {
+    mutation AddMap($name: String!) {
+        addMap(name: $name) {
             success
             error
         }

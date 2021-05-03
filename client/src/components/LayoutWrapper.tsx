@@ -9,6 +9,7 @@ import { GET_USER } from '../gql/userQueries';
 
 import Navbar from './Navbar';
 import Logo from './Logo';
+import Loader from 'react-loader-spinner';
 
 type LocationState = {
     message?: string,
@@ -24,10 +25,27 @@ type Props = {
     refetchUser: (variables?: Partial<OperationVariables> | undefined) => Promise<ApolloQueryResult<IGetUser>>,
     showGlobe?: boolean,
     fadeIn?: boolean,
-    centered?: boolean
+    pageLoadingScreen?: boolean,
+    userLoading?: boolean,
+    loadingStart?: boolean,
+    loadingEnd?: boolean,
+    fadeOut?: boolean
 };
 
-const LayoutWrapper = ({ navbar, titleText, body, user, refetchUser, showGlobe, fadeIn, centered }: Props) => {
+const LayoutWrapper = ({
+    navbar,
+    titleText,
+    body,
+    user,
+    refetchUser,
+    showGlobe,
+    fadeIn,
+    pageLoadingScreen,
+    userLoading,
+    loadingStart,
+    loadingEnd,
+    fadeOut
+}: Props) => {
 
     let location = useLocation<LocationState>();
 
@@ -76,7 +94,20 @@ const LayoutWrapper = ({ navbar, titleText, body, user, refetchUser, showGlobe, 
                             <div className="is-size-4 has-text-weight-light">{titleText}</div>
                         </div>
                     }
-                    {body}
+                    {
+                        pageLoadingScreen ? (
+                            (userLoading || loadingStart) && !loadingEnd ?
+                                <div className="container has-text-centered" >
+                                    <Loader color="#FFF" type="ThreeDots" />
+                                </div>
+                                : (fadeOut || !loadingEnd) ?
+                                    <div className="container has-text-centered fade-out" >
+                                        <Loader color="#FFF" type="ThreeDots" />
+                                    </div>
+                                    : body
+                        ) : body
+
+                    }
                 </div>
 
             </div>

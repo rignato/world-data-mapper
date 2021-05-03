@@ -13,12 +13,13 @@ type Props = {
     invalidMessage: string,
     passwordViewToggle?: boolean,
     overrideMessage?: boolean,
-    error?: string
+    error?: string,
+    value?: string
 };
 
 const InputWithValidation = (props: Props) => {
 
-    const [value, setValue] = useState("");
+    const [value, setValue] = useState(props.value ? props.value : "");
     const [valid, setValid] = useState(false);
     const [edited, setEdited] = useState(false);
     const [passwordVisible, setPasswordVisible] = useState(false);
@@ -48,6 +49,7 @@ const InputWithValidation = (props: Props) => {
                     className={`input ${valid && !props.error ? "" : (edited || props.error ? "is-danger" : "")}`}
                     type={props.passwordViewToggle ? (passwordVisible ? "text" : "password") : (props.type || "text")}
                     placeholder={props.placeholder}
+                    value={value}
                     onChange={updateValue}
                 />
                 <span className="icon is-small is-left">

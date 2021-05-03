@@ -7,8 +7,6 @@ import { ApolloProvider, ApolloClient, InMemoryCache } from '@apollo/client';
 require('dotenv').config();
 const { REACT_APP_BACKEND_PORT } = process.env;
 
-console.log(process.env);
-
 const cache = new InMemoryCache({
 
 	/*

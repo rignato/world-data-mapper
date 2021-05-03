@@ -10,10 +10,11 @@ export type MapResult = Map | Error;
 export type Maps = {
     error: string;
     maps: Map[];
+    totalPageCount: number;
 };
 
-export type IGetAllMaps = {
-    getAllMaps: Maps;
+export type IGetMaps = {
+    getMaps: Maps;
 };
 
 export type IAddMap = {

@@ -1,37 +1,60 @@
 import { Response } from 'express';
 import { RequestWithUserId } from '../utils/auth';
-import { Resolver, Mutation, Query, Ctx, Arg } from "type-graphql";
+import { Resolver, Mutation, Query, Ctx, Arg, Int, } from "type-graphql";
 
 import { Types } from 'mongoose';
-import { Map, MapModel, Maps } from '../schemas/Map';
-import { StatusResult } from '../schemas/Utils';
+import { RegionModel, Maps } from '../schemas/Region';
+import { IntResult, StatusResult } from '../schemas/Utils';
 
 @Resolver()
 export class MapResolvers {
     @Query((returns) => Maps, { nullable: false })
-    async getAllMaps(@Ctx("req") req: RequestWithUserId) {
+    async getMaps(
+        @Arg("page", () => Int, { defaultValue: 1 }) page: number,
+        @Arg("perPage", () => Int, { defaultValue: 10 }) perPage: number,
+        @Ctx("req") req: RequestWithUserId
+    ) {
         if (!req.userId)
             return {
-                maps: [],
                 error: "No current user in session."
             };
 
-        const maps = await MapModel.find({ owner_id: req.userId });
-        return { maps: maps };
+        const totalMaps = await RegionModel.find({
+            ownerId: req.userId,
+            path: []
+        });
+
+        const pageCount = Math.ceil(totalMaps.length / perPage);
+
+        const startOfPage = (page - 1) * perPage;
+
+        const maps = totalMaps.slice(startOfPage, startOfPage + perPage);
+
+        return {
+            maps: maps,
+            totalPageCount: pageCount
+        };
     }
 
     @Mutation((returns) => StatusResult, { nullable: false })
-    async addMap(@Ctx("req") req: RequestWithUserId) {
+    async addMap(
+        @Arg("name") name: string,
+        @Ctx("req") req: RequestWithUserId
+    ) {
         if (!req.userId)
             return {
                 success: false,
                 error: "No current user in session."
             };
-        await MapModel.create({
-            owner_id: req.userId,
-            _id: new Types.ObjectId(),
-            name: "New map",
-            children: []
+
+        const mapId = new Types.ObjectId();
+
+        await RegionModel.create({
+            _id: mapId,
+            ownerId: req.userId,
+            path: [],
+            displayPath: [],
+            name: name
         });
         return { success: true };
     }
@@ -46,11 +69,20 @@ export class MapResolvers {
                 success: false,
                 error: "No current user in session."
             };
-        const map = await MapModel.findOneAndDelete({
-            _id: _id,
-            owner_id: req.userId
+
+        const mapId = Types.ObjectId(_id);
+
+        const mapAndChildren = await RegionModel.deleteMany({
+            $or: [{
+                ownerId: req.userId,
+                _id: mapId
+            }, {
+                ownerId: req.userId,
+                "path.0": mapId
+            }]
+
         });
-        if (map)
+        if (mapAndChildren)
             return { success: true };
 
         return {
@@ -71,13 +103,30 @@ export class MapResolvers {
                 error: "No current user in session."
             };
 
-        const map = await MapModel.findOneAndUpdate({ _id: _id, owner_id: req.userId }, { name: name });
-        if (map)
-            return { success: true };
+        const mapId = Types.ObjectId(_id);
+
+        const map = await RegionModel.findOneAndUpdate({
+            ownerId: req.userId,
+            _id: mapId
+        }, {
+            name: name
+        });
+
+        if (!map)
+            return {
+                success: false,
+                error: `No map found with _id: ${_id} for current user`
+            };
+
+        await RegionModel.updateMany({
+            ownerId: req.userId,
+            "path.0": mapId
+        }, {
+            "displayPath.0": name
+        });
 
         return {
-            success: false,
-            error: `No map found with _id: ${_id} for current user`
+            success: true
         };
     }
 }
