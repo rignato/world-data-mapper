@@ -8,11 +8,13 @@ import RegionTableItem from './RegionTableItem';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_REGIONS } from '../gql/regionQueries';
 import React, { useEffect, useState } from 'react';
-import { IAddRegion, IGetRegions } from '../types/Region';
+import { IAddRegion, IDeleteRegion, IGetRegions, Region, RegionResult } from '../types/Region';
 import { useHistory, useLocation, useParams } from 'react-router';
-import { ADD_REGION } from '../gql/regionMutations';
+import { ADD_REGION, DELETE_REGION } from '../gql/regionMutations';
 import Loader from 'react-loader-spinner';
 import { Link } from 'react-router-dom';
+import { useTPS } from '../utils/tps';
+import { gqlSanitizeInput } from '../utils/utils';
 
 
 type Params = {
@@ -30,8 +32,6 @@ const RegionTable = () => {
     const [parentId, setParentId] = useState(
         searchParams.get("subregion") ? searchParams.get("subregion") : routeParams.mapId
     );
-
-
 
     useEffect(() => {
         console.log(location)
@@ -51,35 +51,105 @@ const RegionTable = () => {
         }
     });
 
-    // const [regionData, regionLoading, refetchRegions] = [{ getRegions: { regions: [], totalPageCount: 0 } }, true, () => { }];
-
-    const [addRegion] = useMutation<IAddRegion>(ADD_REGION);
-
     useEffect(() => {
         (async () => {
             await refetchRegions();
         })()
     }, [page, refetchRegions, parentId, location]);
 
+    const [addRegion] = useMutation<IAddRegion>(ADD_REGION);
+    const [deleteRegion] = useMutation<IDeleteRegion>(DELETE_REGION);
+
+    const { tpsAdd, tpsClear, tpsUndo, hasUndo, tpsRedo, hasRedo } = useTPS();
+
     const handlePageChange = async (newPage: number) => {
         setPage(newPage);
     }
 
     const handleAddRegion = async () => {
-        const { data } = await addRegion({ variables: { parentId: parentId } });
-        if (!data) {
-            console.error("Unknown error occurred.")
-            return;
-        }
 
-        const addStatus = data.addRegion;
+        let region: Region | undefined = undefined;
 
-        if (addStatus.error)
-            console.error(addStatus.error)
-        else {
-            await refetchRegions();
-        }
+        await tpsAdd({
+            redo: async () => {
+                const { data } = await addRegion({ variables: { parentId: parentId, region: gqlSanitizeInput(region) } });
+                if (!data) {
+                    console.error("Unknown error occurred.");
+                    return;
+                }
+
+                const regionRes = data.addRegion;
+
+                if ("error" in regionRes)
+                    console.error(regionRes.error)
+                else {
+                    region = regionRes;
+                    await refetchRegions();
+                }
+            },
+            undo: async () => {
+                if (!region) {
+                    console.error("Cannot undo addRegion: no region found.");
+                    return;
+                }
+                const { data } = await deleteRegion({ variables: { _id: region._id } });
+                if (!data) {
+                    console.error("Unknown error occurred.");
+                    return;
+                }
+
+                const deleteRes = data.deleteRegion;
+
+                if (deleteRes.error)
+                    console.error(deleteRes.error);
+                else {
+                    await refetchRegions();
+                }
+            }
+        });
     };
+
+    const handleDeleteRegion = async (region: Region) => {
+        await tpsAdd({
+            redo: async () => {
+                if (!region) {
+                    console.error("Cannot undo addRegion: no region found.");
+                    return;
+                }
+                const { data } = await deleteRegion({ variables: { _id: region._id } });
+                if (!data) {
+                    console.error("Unknown error occurred.");
+                    return;
+                }
+
+                const deleteRes = data.deleteRegion;
+
+                if (deleteRes.error)
+                    console.error(deleteRes.error);
+                else {
+                    await refetchRegions();
+                }
+            },
+            undo: async () => {
+                console.log(region);
+                const { data } = await addRegion({ variables: { parentId: parentId, region: gqlSanitizeInput(region) } });
+                if (!data) {
+                    console.error("Unknown error occurred.");
+                    return;
+                }
+
+                const regionRes = data.addRegion;
+
+                if ("error" in regionRes)
+                    console.error(regionRes.error)
+                else {
+                    region = regionRes;
+                    await refetchRegions();
+                }
+            }
+        });
+    };
+
 
     return (
         <div className="container" >
@@ -88,12 +158,12 @@ const RegionTable = () => {
             <div className={`level mt-0 mb-${searchParams.get("subregion") ? "0" : "5"}`}>
                 <div className="level-left">
                     <div className="level-item buttons">
-                        <button className="button is-dark" disabled>
+                        <button className="button is-dark" disabled={!hasUndo} onClick={tpsUndo}>
                             <span className="icon">
                                 <FontAwesomeIcon icon={faUndoAlt} size="lg" />
                             </span>
                         </button>
-                        <button className="button is-dark" disabled>
+                        <button className="button is-dark" disabled={!hasRedo} onClick={tpsRedo}>
                             <span className="icon">
                                 <FontAwesomeIcon icon={faRedoAlt} size="lg" />
                             </span>
@@ -212,9 +282,20 @@ const RegionTable = () => {
                             Object.assign(new Array(perPage).fill(null), regionData?.getRegions.regions).map((region, index) => (
                                 region
                                     ?
-                                    <RegionTableItem key={region._id} mapId={routeParams.mapId} _id={region._id} name={region.name} capital={region.capital} leader={region.leader} landmarks={region.landmarks} />
+                                    <RegionTableItem
+                                        key={region._id}
+                                        mapId={routeParams.mapId}
+                                        region={region}
+                                        handleDelete={handleDeleteRegion}
+                                        refetch={refetchRegions}
+                                    />
                                     :
-                                    <RegionTableItem key={`empty_${index}`} name="" capital="" leader="" landmarks={[]} empty />
+                                    <RegionTableItem
+                                        key={`empty_${index}`}
+                                        empty
+                                        handleDelete={handleDeleteRegion}
+                                        refetch={refetchRegions}
+                                    />
                             ))
                     }
                 </tbody>

@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 import { Error } from './Utils';
 
-import { ObjectType, Field, createUnionType, ID } from "type-graphql";
+import { ObjectType, Field, createUnionType, ID, InputType } from "type-graphql";
 import { index as Index, prop as Prop, getModelForClass, Severity, ModelOptions } from "@typegoose/typegoose";
 
 @ObjectType()
@@ -35,7 +35,7 @@ export class Region {
     @Prop()
     ownerId: Types.ObjectId;
 
-    @Field(() => [String])
+    @Field(() => [ID])
     @Prop(() => [Types.ObjectId])
     path: Types.ObjectId[];
 
@@ -47,20 +47,59 @@ export class Region {
     @Prop()
     name: string;
 
-    @Field({ defaultValue: "" })
+    @Field()
     @Prop({ default: "" })
     capital?: string;
 
-    @Field({ defaultValue: "" })
+    @Field()
     @Prop({ default: "" })
     leader?: string;
 
-    @Field(() => [String], { defaultValue: [] })
+    @Field(() => [String])
     @Prop({ default: [] })
     landmarks?: string[];
 
     @Field()
-    subregionCount?: number
+    subregionCount?: number;
+}
+
+@InputType()
+export class RegionInput {
+    @Field(() => ID)
+    _id: Types.ObjectId;
+
+    @Field(() => [String])
+    path: string[];
+
+    @Field(() => [String])
+    displayPath: string[];
+
+    @Field()
+    name: string;
+
+    @Field()
+    capital: string;
+
+    @Field()
+    leader: string;
+
+    @Field(() => [String])
+    landmarks: string[];
+}
+
+@InputType()
+export class EditRegionInput {
+    @Field(() => ID)
+    _id: Types.ObjectId;
+
+    @Field()
+    name: string;
+
+    @Field()
+    capital: string;
+
+    @Field()
+    leader: string;
 }
 
 @ObjectType()

@@ -29,6 +29,10 @@ export type IGetRegionById = {
 };
 
 export type IAddRegion = {
-    addRegion: StatusResult;
+    addRegion: RegionResult;
+};
+
+export type IDeleteRegion = {
+    deleteRegion: StatusResult;
 };
 

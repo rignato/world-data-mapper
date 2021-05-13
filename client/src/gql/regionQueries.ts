@@ -1,14 +1,12 @@
 import { gql } from "@apollo/client";
+import { REGION_FIELDS } from "./regionFragments";
 
 export const GET_REGIONS = gql`
+    ${REGION_FIELDS}
 	query GetRegions($parentId: String!, $page: Int, $perPage: Int) {
         getRegions(parentId: $parentId, page: $page, perPage: $perPage) {
             regions {
-              _id
-              name
-              leader
-              capital
-              landmarks
+              ...RegionFields
             }
             error
             totalPageCount
@@ -18,16 +16,11 @@ export const GET_REGIONS = gql`
 `;
 
 export const GET_REGION_BY_ID = gql`
+    ${REGION_FIELDS}
     query GetRegionById($_id: String!) {
         getRegionById(_id: $_id) {
             ... on Region {
-                _id
-                name
-                capital
-                leader
-                landmarks
-                path
-                displayPath
+                ...RegionFields
                 subregionCount
 		    }
             ... on Error {
