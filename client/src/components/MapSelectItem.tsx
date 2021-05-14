@@ -44,7 +44,7 @@ const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback
                                 ?
                                 <input className="input is-size-5" type="text" placeholder="Enter map name" defaultValue={name} onBlur={handleEditingName} autoFocus={true} />
                                 :
-                                <Link to={`/maps/${_id}`}><button className="button is-ghost has-text-dark is-size-5">{name}</button></Link>
+                                <Link to={`/maps/${_id}`}><button className="button is-ghost has-text-info is-size-5">{name}</button></Link>
                         }
                     </div>
 

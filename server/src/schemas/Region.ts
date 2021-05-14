@@ -35,6 +35,10 @@ export class Region {
     @Prop()
     ownerId: Types.ObjectId;
 
+    @Prop({ default: () => Date.now() })
+    @Field(() => Date)
+    createdAt: Date
+
     @Field(() => [ID])
     @Prop(() => [Types.ObjectId])
     path: Types.ObjectId[];
@@ -61,6 +65,54 @@ export class Region {
 
     @Field()
     subregionCount?: number;
+
+    @Field(() => ID, { nullable: true })
+    previousSibling?: Types.ObjectId;
+
+    @Field(() => ID, { nullable: true })
+    nextSibling?: Types.ObjectId;
+}
+
+@ObjectType()
+export class RegionView {
+    @Field(() => ID)
+    _id: Types.ObjectId;
+
+    @Field(() => Date)
+    createdAt: Date
+
+    @Field(() => [ID])
+    path: Types.ObjectId[];
+
+    @Field(() => [String])
+    displayPath: string[];
+
+    @Field()
+    name: string;
+
+    @Field()
+    capital: string;
+
+    @Field()
+    leader: string;
+
+    @Field(() => [String])
+    landmarks: string[];
+
+    @Field()
+    subregionCount: number;
+
+    @Field(() => ID, { nullable: true })
+    previousSibling: Types.ObjectId;
+
+    @Field(() => ID, { nullable: true })
+    nextSibling: Types.ObjectId;
+
+    @Field(() => [String])
+    potentialParentNames: string[];
+
+    @Field(() => [ID])
+    potentialParentIds: Types.ObjectId[];
 }
 
 @InputType()
@@ -85,6 +137,9 @@ export class RegionInput {
 
     @Field(() => [String])
     landmarks: string[];
+
+    @Field(() => Date)
+    createdAt: Date
 }
 
 @InputType()
@@ -125,6 +180,18 @@ export const RegionResult = createUnionType({
             return Error;
         } else {
             return Region;
+        }
+    }
+});
+
+export const RegionViewResult = createUnionType({
+    name: 'RegionViewResult',
+    types: () => [RegionView, Error],
+    resolveType: data => {
+        if ("error" in data) {
+            return Error;
+        } else {
+            return RegionView;
         }
     }
 });

@@ -39,23 +39,40 @@ const RegionTable = () => {
         setParentId(searchParams.get("subregion") ? searchParams.get("subregion") : routeParams.mapId)
     }, [location, routeParams.mapId]);
 
-    const perPage = 6;
+    const perPage = 10;
 
     const [page, setPage] = useState(1);
+    const [sortBy, setSortBy] = useState<'name' | 'leader' | 'capital' | undefined>(undefined);
+    const [reversed, setReversed] = useState(false);
 
     const { data: regionData, loading: regionLoading, error: errorLoading, refetch: refetchRegions } = useQuery<IGetRegions>(GET_REGIONS, {
         variables: {
             parentId: parentId,
             perPage: perPage,
-            page: page
+            page: page,
+            sortBy: sortBy,
+            reversed: reversed
         }
     });
+
+    const [name, setName] = useState(regionData ? regionData.getRegions.displayPath[regionData.getRegions.displayPath.length - 1] : '');
+
+    useEffect(() => {
+        if (!regionLoading && regionData)
+            setName(regionData.getRegions.displayPath[regionData.getRegions.displayPath.length - 1])
+    }, [regionData, regionLoading, parentId]);
 
     useEffect(() => {
         (async () => {
             await refetchRegions();
         })()
-    }, [page, refetchRegions, parentId, location]);
+    }, [page, reversed, sortBy, refetchRegions, parentId, location]);
+
+    useEffect(() => {
+        if (regionData && regionData.getRegions.regions.length === 0 && page > 1) {
+            setPage(page - 1);
+        }
+    }, [regionData, page]);
 
     const [addRegion] = useMutation<IAddRegion>(ADD_REGION);
     const [deleteRegion] = useMutation<IDeleteRegion>(DELETE_REGION);
@@ -150,6 +167,23 @@ const RegionTable = () => {
         });
     };
 
+    const handleSortRegion = async (key: 'name' | 'capital' | 'leader') => {
+        const prevKey = sortBy;
+        const prevReversed = reversed;
+        await tpsAdd({
+            redo: async () => {
+                setReversed(sortBy === key && !reversed ? true : false);
+                setSortBy(key);
+                setPage(1);
+            },
+            undo: async () => {
+                setSortBy(prevKey);
+                setReversed(prevReversed);
+                setPage(1);
+            }
+        });
+    };
+
 
     return (
         <div className="container" >
@@ -181,19 +215,13 @@ const RegionTable = () => {
                                 pathname: `${location.pathname}/view`,
                                 search: location.search
                             }}>
-                                <div className={`title has-text-weight-medium button has-text-primary is-ghost`}>{
-                                    !regionLoading &&
-                                        regionData && regionData.getRegions
-                                        ? regionData.getRegions.displayPath[regionData.getRegions.displayPath.length - 1]
-                                        : ""
+                                <div className={`title has-text-weight-medium button has-text-info is-ghost`}>{
+                                    name
                                 }
                                 </div>
                             </Link> :
                             <div className={`title has-text-weight-medium pl-5`}>{
-                                !regionLoading &&
-                                    regionData && regionData.getRegions
-                                    ? regionData.getRegions.displayPath[regionData.getRegions.displayPath.length - 1]
-                                    : ""
+                                name
                             }
                             </div>
                     }
@@ -202,58 +230,55 @@ const RegionTable = () => {
             </div>
 
 
-            <table className="table is-fullwidth is-rounded has-text-centered mb-0">
+            <table className="table is-fullwidth is-hoverable is-rounded mb-0">
                 <thead >
                     <tr className="has-background-info">
-                        <th>
+                        <th className="px-0 mx-0 table-col">
                             <button
-                                className={`${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`}
-                            >
+                                className={
+                                    `${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`
+                                }
+                                onClick={async () => { await handleSortRegion('name') }}>
                                 <span>Name</span>
                                 <span className="icon">
-                                    <FontAwesomeIcon icon={faLongArrowAltUp} className="has-text-info-dark" />
-                                    <FontAwesomeIcon icon={faLongArrowAltDown} className="has-text-info-dark" />
+                                    <FontAwesomeIcon icon={faLongArrowAltUp} className={`has-text-info-${reversed && sortBy === 'name' ? "light" : "dark"}`} />
+                                    <FontAwesomeIcon icon={faLongArrowAltDown} className={`has-text-info-${!reversed && sortBy === 'name' ? "light" : "dark"}`} />
                                 </span>
                             </button>
 
                         </th>
-                        <th>
-                            <button className={`${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`}>
+                        <th className="px-0 mx-0 table-col">
+                            <button
+                                className={
+                                    `${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`
+                                }
+                                onClick={async () => { await handleSortRegion('capital') }}>
                                 <span>Capital</span>
                                 <span className="icon">
-                                    <FontAwesomeIcon icon={faLongArrowAltUp} className="has-text-info-dark" />
-                                    <FontAwesomeIcon icon={faLongArrowAltDown} className="has-text-info-dark" />
+                                    <FontAwesomeIcon icon={faLongArrowAltUp} className={`has-text-info-${reversed && sortBy === 'capital' ? "light" : "dark"}`} />
+                                    <FontAwesomeIcon icon={faLongArrowAltDown} className={`has-text-info-${!reversed && sortBy === 'capital' ? "light" : "dark"}`} />
                                 </span>
                             </button>
 
                         </th>
-                        <th>
-                            <button className={`${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`}>
+                        <th className="px-0 mx-0 table-col">
+                            <button
+                                className={
+                                    `${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`
+                                }
+                                onClick={async () => { await handleSortRegion('leader') }}>
                                 <span>Leader</span>
                                 <span className="icon">
-                                    <FontAwesomeIcon icon={faLongArrowAltUp} className="has-text-info-dark" />
-                                    <FontAwesomeIcon icon={faLongArrowAltDown} className="has-text-info-dark" />
+                                    <FontAwesomeIcon icon={faLongArrowAltUp} className={`has-text-info-${reversed && sortBy === 'leader' ? "light" : "dark"}`} />
+                                    <FontAwesomeIcon icon={faLongArrowAltDown} className={`has-text-info-${!reversed && sortBy === 'leader' ? "light" : "dark"}`} />
                                 </span>
                             </button>
                         </th>
-                        <th>
-                            <button className={`${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`}>
-                                <span>Flag</span>
-                                <span className="icon">
-                                    <FontAwesomeIcon icon={faLongArrowAltUp} className="has-text-info-dark" />
-                                    <FontAwesomeIcon icon={faLongArrowAltDown} className="has-text-info-dark" />
-                                </span>
-                            </button>
-
+                        <th className="px-4">
+                            <div className={`mt-0 py-2 ${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} has-text-light has-text-weight-semibold is-size-5`}>Flag</div>
                         </th>
-                        <th>
-                            <button className={`${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`}>
-                                <span>Landmarks</span>
-                                <span className="icon">
-                                    <FontAwesomeIcon icon={faLongArrowAltUp} className="has-text-info-dark" />
-                                    <FontAwesomeIcon icon={faLongArrowAltDown} className="has-text-info-dark" />
-                                </span>
-                            </button>
+                        <th className="px-5 table-col">
+                            <div className={`mt-0 py-2 ${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} has-text-light has-text-weight-semibold is-size-5`}>Landmarks</div>
 
                         </th>
                         <th>
@@ -269,7 +294,7 @@ const RegionTable = () => {
                 <tbody>
 
                     {
-                        regionLoading || !regionData || !regionData.getRegions
+                        regionLoading || !regionData || !regionData.getRegions || false
                             ?
                             <tr>
                                 <td></td>

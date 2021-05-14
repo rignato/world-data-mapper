@@ -23,3 +23,12 @@ export const DELETE_REGION = gql`
       }
     }
 `;
+
+export const EDIT_REGION = gql`
+    mutation EditRegion($regionToEdit: EditRegionInput!) {
+      editRegion(regionToEdit: $regionToEdit) {
+        success
+        error
+      }
+    }
+`;

@@ -8,10 +8,26 @@ export type Region = {
     landmarks: string[];
     displayPath: string[];
     path: string[];
-    subregionCount?: number;
+};
+
+export type RegionView = {
+    _id: string;
+    name: string;
+    capital: string;
+    leader: string;
+    landmarks: string[];
+    displayPath: string[];
+    path: string[];
+    subregionCount: number;
+    previousSibling: string;
+    nextSibling: string;
+    potentialParentNames: string[];
+    potentialParentIDs: string[];
 };
 
 export type RegionResult = Region | Error;
+
+export type RegionViewResult = RegionView | Error;
 
 export type Regions = {
     error: string;
@@ -25,7 +41,7 @@ export type IGetRegions = {
 };
 
 export type IGetRegionById = {
-    getRegionById: RegionResult;
+    getRegionById: RegionViewResult;
 };
 
 export type IAddRegion = {
@@ -34,5 +50,9 @@ export type IAddRegion = {
 
 export type IDeleteRegion = {
     deleteRegion: StatusResult;
+};
+
+export type IEditRegion = {
+    editRegion: StatusResult;
 };
 

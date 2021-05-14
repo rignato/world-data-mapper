@@ -3,6 +3,11 @@
 # !!!   DO NOT MODIFY THIS FILE BY YOURSELF   !!!
 # -----------------------------------------------
 
+"""
+The javascript `Date` as string. Type represents date and time as the ISO Date string.
+"""
+scalar DateTime
+
 input EditRegionInput {
   _id: ID!
   capital: String!
@@ -30,7 +35,7 @@ type Mutation {
   addRegion(parentId: String!, region: RegionInput): RegionResult!
   deleteMap(_id: String!): StatusResult!
   deleteRegion(_id: String!): StatusResult!
-  editRegion(editRegion: EditRegionInput!): StatusResult!
+  editRegion(regionToEdit: EditRegionInput!): StatusResult!
   login(email: String!, password: String!): UserResult!
   logout: StatusResult!
   register(email: String!, name: String!, password: String!): StatusResult!
@@ -41,25 +46,29 @@ type Mutation {
 
 type Query {
   getMaps(page: Int = 1, perPage: Int = 10): Maps!
-  getRegionById(_id: String!): RegionResult!
-  getRegions(page: Int = 1, parentId: String!, perPage: Int = 10): Regions!
+  getRegionById(_id: String!, reversed: Boolean, sortBy: String): RegionViewResult!
+  getRegions(page: Int = 1, parentId: String!, perPage: Int = 10, reversed: Boolean, sortBy: String): Regions!
   getUser: UserResult!
 }
 
 type Region {
   _id: ID!
   capital: String!
+  createdAt: DateTime!
   displayPath: [String!]!
   landmarks: [String!]!
   leader: String!
   name: String!
+  nextSibling: ID
   path: [ID!]!
+  previousSibling: ID
   subregionCount: Float!
 }
 
 input RegionInput {
   _id: ID!
   capital: String!
+  createdAt: DateTime!
   displayPath: [String!]!
   landmarks: [String!]!
   leader: String!
@@ -68,6 +77,24 @@ input RegionInput {
 }
 
 union RegionResult = Error | Region
+
+type RegionView {
+  _id: ID!
+  capital: String!
+  createdAt: DateTime!
+  displayPath: [String!]!
+  landmarks: [String!]!
+  leader: String!
+  name: String!
+  nextSibling: ID
+  path: [ID!]!
+  potentialParentIds: [ID!]!
+  potentialParentNames: [String!]!
+  previousSibling: ID
+  subregionCount: Float!
+}
+
+union RegionViewResult = Error | RegionView
 
 type Regions {
   displayPath: [String!]

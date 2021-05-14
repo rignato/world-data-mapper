@@ -17,4 +17,10 @@ export const gqlSanitizeInput = (object: any) => {
         return object;
     const { __typename, ...gqlSanitized } = object;
     return gqlSanitized;
-}
+};
+
+export const truncateString = (s: string, len: number) => {
+    if (s.length <= len)
+        return s;
+    return s.slice(0, len - 4).concat(" ...");
+};

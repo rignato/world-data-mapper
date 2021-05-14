@@ -16,15 +16,31 @@
 }
 
 .table-body-container {
-  min-height: 33rem;
-  height: 33rem;
+  min-height: 33.5rem;
+  height: 33.5rem;
+}
+
+.name-input {
+  min-width: 80% !important;
+  max-width: 80% !important;
+  width:  80% !important;
+}
+
+.table-col {
+  min-width: 12rem !important;
+  max-width: 12rem !important;
+  width:  12rem !important;
+}
+
+.table-row {
+  height: 3.5rem;
 }
 
 .is-scrollable {
   overflow-y: scroll;
   position: absolute;
-  height: 25rem;
-  max-height: 25rem;
+  max-height: 9rem;
+  width: 100%;
   scrollbar-width: thin;
 }
 

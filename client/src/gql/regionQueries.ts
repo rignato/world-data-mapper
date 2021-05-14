@@ -1,10 +1,10 @@
 import { gql } from "@apollo/client";
-import { REGION_FIELDS } from "./regionFragments";
+import { REGION_FIELDS, REGION_VIEW_FIELDS } from "./regionFragments";
 
 export const GET_REGIONS = gql`
     ${REGION_FIELDS}
-	query GetRegions($parentId: String!, $page: Int, $perPage: Int) {
-        getRegions(parentId: $parentId, page: $page, perPage: $perPage) {
+	query GetRegions($parentId: String!, $page: Int, $perPage: Int, $sortBy: String, $reversed: Boolean) {
+        getRegions(parentId: $parentId, page: $page, perPage: $perPage, sortBy: $sortBy, reversed: $reversed) {
             regions {
               ...RegionFields
             }
@@ -16,11 +16,11 @@ export const GET_REGIONS = gql`
 `;
 
 export const GET_REGION_BY_ID = gql`
-    ${REGION_FIELDS}
+    ${REGION_VIEW_FIELDS}
     query GetRegionById($_id: String!) {
         getRegionById(_id: $_id) {
-            ... on Region {
-                ...RegionFields
+            ... on RegionView {
+                ...RegionViewFields
                 subregionCount
 		    }
             ... on Error {

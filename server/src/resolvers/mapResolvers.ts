@@ -54,7 +54,8 @@ export class MapResolvers {
             ownerId: req.userId,
             path: [],
             displayPath: [],
-            name: name
+            name: name,
+            createdAt: Date.now()
         });
         return { success: true };
     }
