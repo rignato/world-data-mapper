@@ -51,8 +51,10 @@ export const GET_LANDMARKS = gql`
     query GetLandmarks($_id: String!, $perPage: Int, $page: Int) {
         getLandmarks(_id: $_id, perPage: $perPage, page: $page) {
             landmarks {
+              _id
               name
               owner
+              ownerName
             }
             error
             totalPageCount

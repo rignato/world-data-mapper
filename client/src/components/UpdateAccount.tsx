@@ -71,7 +71,7 @@ const UpdateAccount = ({ user, refetch }: Props) => {
         if (password.length === 0) {
             setLoading(false);
             await refetch();
-            history.push('/');
+            history.goBack();
             return;
         }
 
@@ -96,7 +96,7 @@ const UpdateAccount = ({ user, refetch }: Props) => {
             return;
         }
         await refetch();
-        history.push("/");
+        history.goBack();
     };
 
     useEffect(() => {

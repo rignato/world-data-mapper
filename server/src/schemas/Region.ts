@@ -59,9 +59,9 @@ export class Region {
     @Prop({ default: "" })
     leader?: string;
 
-    @Field(() => [String])
+    @Field(() => [Landmark])
     @Prop({ default: [] })
-    landmarks?: string[];
+    landmarks?: Landmark[];
 
     @Field()
     subregionCount?: number;
@@ -73,12 +73,34 @@ export class Region {
     nextSibling?: Types.ObjectId;
 }
 
-@ObjectType()
-export class Landmark {
+@InputType()
+export class LandmarkInput {
+    @Field(() => ID)
+    _id: string;
+
     @Field()
     name: string;
+
+    @Field(() => String, { defaultValue: "" })
+    owner: string;
+
+    @Field(() => String, { defaultValue: "" })
+    ownerName: string;
+}
+
+@ObjectType()
+export class Landmark {
+    @Field(() => ID)
+    _id: Types.ObjectId;
+
+    @Field()
+    name: string;
+
     @Field(() => String)
     owner: Types.ObjectId;
+
+    @Field(() => String)
+    ownerName?: string;
 }
 
 @ObjectType()
@@ -116,8 +138,8 @@ export class RegionView {
     @Field()
     leader: string;
 
-    @Field(() => [String])
-    landmarks: string[];
+    @Field(() => [Landmark])
+    landmarks: Landmark[];
 
     @Field()
     subregionCount: number;
@@ -155,8 +177,8 @@ export class RegionInput {
     @Field()
     leader: string;
 
-    @Field(() => [String])
-    landmarks: string[];
+    @Field(() => [LandmarkInput])
+    landmarks: LandmarkInput[];
 
     @Field(() => Date)
     createdAt: Date
@@ -175,6 +197,15 @@ export class EditRegionInput {
 
     @Field()
     leader: string;
+}
+
+@InputType()
+export class EditLandmarkInput {
+    @Field(() => ID)
+    _id: Types.ObjectId;
+
+    @Field()
+    name: string;
 }
 
 @ObjectType()
@@ -218,6 +249,18 @@ export const RegionResult = createUnionType({
             return Error;
         } else {
             return Region;
+        }
+    }
+});
+
+export const LandmarkResult = createUnionType({
+    name: 'LandmarkResult',
+    types: () => [Landmark, Error],
+    resolveType: data => {
+        if ("error" in data) {
+            return Error;
+        } else {
+            return Landmark;
         }
     }
 });

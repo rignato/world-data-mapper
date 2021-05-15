@@ -5,7 +5,7 @@ export type Region = {
     name: string;
     capital: string;
     leader: string;
-    landmarks: string[];
+    landmarks: Landmark[];
     displayPath: string[];
     path: string[];
     createdAt: Date;
@@ -16,7 +16,6 @@ export type RegionView = {
     name: string;
     capital: string;
     leader: string;
-    landmarks: string[];
     displayPath: string[];
     path: string[];
     createdAt: Date;
@@ -40,6 +39,8 @@ export type RegionViewResult = RegionView | Error;
 
 export type RegionPathResult = RegionPath | Error;
 
+export type LandmarkResult = Landmark | Error;
+
 export type Regions = {
     error: string;
     regions: Region[];
@@ -49,8 +50,10 @@ export type Regions = {
 };
 
 export type Landmark = {
+    _id: string;
     name: string;
     owner: string;
+    ownerName: string;
 };
 
 export type Landmarks = {
@@ -88,9 +91,17 @@ export type IChangeParent = {
 };
 
 export type IAddLandmark = {
-    addLandmark: StatusResult;
+    addLandmark: LandmarkResult;
 };
 
 export type IGetLandmarks = {
     getLandmarks: Landmarks;
+};
+
+export type IDeleteLandmark = {
+    deleteLandmark: StatusResult;
+};
+
+export type IEditLandmark = {
+    editLandmark: StatusResult;
 };

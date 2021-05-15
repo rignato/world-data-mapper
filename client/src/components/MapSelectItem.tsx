@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrashAlt, faTimes, faEdit } from '@fortawesome/free-solid-svg-icons';
 import { faTrashAlt as farTrashAlt, faEdit as farEdit } from '@fortawesome/free-regular-svg-icons';
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import { Map } from '../types/Map';
 
 type Props = {
@@ -18,6 +18,8 @@ const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback
     const [editingName, setEditingName] = useState(false);
 
     const [name, setName] = useState(originalName);
+
+    let history = useHistory();
 
     const handleEditingName = async (e: React.FormEvent<HTMLInputElement>) => {
         const newName = e.currentTarget.value;
@@ -44,7 +46,9 @@ const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback
                                 ?
                                 <input className="input is-size-5" type="text" placeholder="Enter map name" defaultValue={name} onBlur={handleEditingName} autoFocus={true} />
                                 :
-                                <Link to={`/maps/${_id}`}><button className="button is-ghost has-text-info is-size-5">{name}</button></Link>
+                                <button className="button is-ghost has-text-info is-size-5" onClick={
+                                    () => history.push(`/maps/${_id}`)
+                                }>{name}</button>
                         }
                     </div>
 

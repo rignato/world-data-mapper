@@ -15,6 +15,7 @@ import RegionTable from './components/RegionTable';
 import RegionViewer from './components/RegionViewer';
 import UpdateAccount from './components/UpdateAccount';
 import { useTPS } from './utils/tps';
+import { getFlagURL } from './utils/utils';
 
 const App = () => {
 
@@ -54,6 +55,20 @@ const App = () => {
       }, 500);
     }
   }, [fadeIn]);
+
+  useEffect(() => {
+    const handleCtrl = async (e: KeyboardEvent) => {
+      if (!e.ctrlKey)
+        return;
+      if (e.key === 'z') {
+        await tps.tpsUndo();
+      } else if (e.key === 'y') {
+        await tps.tpsRedo();
+      }
+    };
+    document.addEventListener('keydown', handleCtrl);
+    return document.removeEventListener('keydown', handleCtrl);
+  }, [tps]);
 
 
   return (
@@ -117,7 +132,7 @@ const App = () => {
             fadeOut={fadeOut}
             path={path}
             displayPath={displayPath}
-            body={<RegionTable tps={tps} setPath={setPath} setDisplayPath={setDisplayPath} />}
+            body={<RegionTable tps={tps} displayPath={displayPath} setPath={setPath} setDisplayPath={setDisplayPath} />}
           />
         </Route>
 
@@ -133,7 +148,7 @@ const App = () => {
             fadeOut={fadeOut}
             path={path}
             displayPath={displayPath}
-            body={<RegionViewer tps={tps} setPath={setPath} setDisplayPath={setDisplayPath} />}
+            body={<RegionViewer tps={tps} displayPath={displayPath} setPath={setPath} setDisplayPath={setDisplayPath} />}
           />
         </Route>
 

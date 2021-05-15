@@ -9,6 +9,7 @@ import { ADD_MAP, DELETE_MAP, RENAME_MAP } from '../gql/mapMutations';
 import Loader from 'react-loader-spinner';
 import { useEffect, useState } from 'react';
 import Pagination from './Pagination';
+import { validateName } from '../utils/utils';
 
 type Props = {
     user?: UserResult;
@@ -167,7 +168,7 @@ const MapSelect = ({ user, fadeIn }: Props) => {
                                 />
                             </div>
                             <div className="control">
-                                <button className="button is-info is-medium" onClick={handleAddMap} disabled={newMapName.length === 0}>
+                                <button className="button is-info is-medium" onClick={handleAddMap} disabled={!validateName(newMapName)}>
                                     <span className="icon-text level">
                                         <span className="icon level-item">
                                             <FontAwesomeIcon icon={faPlus} size="sm" />

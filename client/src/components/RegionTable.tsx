@@ -24,9 +24,10 @@ type Props = {
     tps: TPS;
     setPath: React.Dispatch<React.SetStateAction<string[]>>;
     setDisplayPath: React.Dispatch<React.SetStateAction<string[]>>;
+    displayPath: string[];
 }
 
-const RegionTable = ({ tps, setPath, setDisplayPath }: Props) => {
+const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
 
     const routeParams = useParams<Params>();
 
@@ -205,6 +206,48 @@ const RegionTable = ({ tps, setPath, setDisplayPath }: Props) => {
     };
 
 
+    const [selectedRow, setSelectedRow] = useState(-1);
+    const [selectedCol, setSelectedCol] = useState(-1);
+
+    const moveSelection = (row: number, col: number) => {
+        console.log(row, col)
+        setSelectedRow(row);
+        setSelectedCol(col);
+    };
+
+    // useEffect(() => {
+    //     const handleArrows = async (e: KeyboardEvent) => {
+    //         switch (e.key) {
+    //             case "ArrowLeft":
+    //                 if (regionData && selectedCol > 0) {
+    //                     // console.log("LEFT")
+    //                     moveSelection(selectedRow, selectedCol - 1);
+    //                 }
+    //                 break;
+    //             case "ArrowRight":
+    //                 if (regionData && selectedCol < 2) {
+    //                     console.log("RIGHT", selectedRow, selectedCol)
+    //                     moveSelection(selectedRow, selectedCol + 1);
+    //                 }
+    //                 break;
+    //             case "ArrowUp":
+    //                 if (regionData && selectedRow > 0) {
+    //                     console.log("UP", selectedRow, selectedCol)
+    //                     moveSelection(selectedRow - 1, selectedCol);
+    //                 }
+    //                 break;
+    //             case "ArrowDown":
+    //                 if (regionData && selectedRow < regionData.getRegions.regions.length - 1) {
+    //                     moveSelection(selectedRow + 1, selectedCol);
+    //                 }
+    //                 break;
+    //         }
+    //     };
+    //     window.addEventListener('keydown', handleArrows);
+    //     return () => window.removeEventListener('keydown', handleArrows);
+    //     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, [])
+
     return (
         <div className="container" >
             {
@@ -214,7 +257,7 @@ const RegionTable = ({ tps, setPath, setDisplayPath }: Props) => {
                     <div className="modal-card">
                         <header className="modal-card-head">
                             <p className="modal-card-title">Confirm subregion deletion</p>
-                            <button className="delete" aria-label="close" />
+                            <button className="delete" aria-label="close" onClick={() => setRegionToDelete(undefined)} />
                         </header>
                         <section className="modal-card-body has-text-dark">
                             Are you sure you want to delete the subregion "{regionToDelete.name}"?
@@ -349,6 +392,9 @@ const RegionTable = ({ tps, setPath, setDisplayPath }: Props) => {
                                 region
                                     ?
                                     <RegionTableItem
+                                        selectedRow={selectedRow}
+                                        selectedCol={selectedCol}
+                                        row={index}
                                         key={region._id}
                                         mapId={routeParams.mapId}
                                         region={region}
@@ -357,9 +403,14 @@ const RegionTable = ({ tps, setPath, setDisplayPath }: Props) => {
                                         tps={tps}
                                         sortBy={sortBy}
                                         reversed={reversed}
+                                        displayPath={displayPath}
+                                        moveSelection={moveSelection}
                                     />
                                     :
                                     <RegionTableItem
+                                        selectedRow={selectedRow}
+                                        selectedCol={selectedCol}
+                                        row={index}
                                         key={`empty_${index}`}
                                         empty
                                         handleDelete={handleDeleteRegion}
@@ -367,6 +418,8 @@ const RegionTable = ({ tps, setPath, setDisplayPath }: Props) => {
                                         tps={tps}
                                         sortBy={sortBy}
                                         reversed={reversed}
+                                        displayPath={displayPath}
+                                        moveSelection={moveSelection}
                                     />
                             ))
                     }

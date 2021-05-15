@@ -4,7 +4,7 @@ import { Resolver, Mutation, Query, Ctx, Arg, Int } from "type-graphql";
 
 import { FilterQuery, Types } from 'mongoose';
 import { IntResult, StatusResult } from '../schemas/Utils';
-import { RegionModel, Regions, Map, Maps, RegionResult, Region, RegionInput, EditRegionInput, RegionViewResult, RegionPathResult, Landmarks } from '../schemas/Region';
+import { RegionModel, Regions, Map, Maps, RegionResult, Region, RegionInput, EditRegionInput, RegionViewResult, RegionPathResult, Landmarks, Landmark, LandmarkResult, LandmarkInput, EditLandmarkInput } from '../schemas/Region';
 
 @Resolver()
 export class RegionResolvers {
@@ -334,15 +334,14 @@ export class RegionResolvers {
         return { success: true };
     }
 
-    @Mutation(() => StatusResult, { nullable: false })
+    @Mutation(() => LandmarkResult, { nullable: false })
     async addLandmark(
         @Arg("_id") _id: string,
-        @Arg("landmark") landmark: string,
+        @Arg("landmark", () => LandmarkInput) landmark: LandmarkInput,
         @Ctx("req") req: RequestWithUserId
     ) {
         if (!req.userId)
             return {
-                success: false,
                 error: "No current user in session."
             };
 
@@ -353,11 +352,16 @@ export class RegionResolvers {
 
         if (!region || !region.landmarks)
             return {
-                success: false,
                 error: `No region found with _id: ${_id}`
             }
 
-        region.landmarks.push(landmark);
+        const newLandmark = {
+            _id: landmark._id.length > 0 ? Types.ObjectId(landmark._id) : new Types.ObjectId(),
+            name: landmark.name,
+            owner: region._id
+        };
+
+        region.landmarks.push(newLandmark);
         await RegionModel.updateOne({
             _id: _id,
             ownerId: req.userId
@@ -365,7 +369,7 @@ export class RegionResolvers {
             landmarks: region.landmarks
         });
 
-        return { success: true };
+        return { ...newLandmark, ownerName: region.name };
     }
 
     @Query(() => Landmarks, { nullable: false })
@@ -390,10 +394,7 @@ export class RegionResolvers {
                 error: `No region found with _id: ${_id}`
             }
 
-        const landmarks = region.landmarks.map((name) => ({
-            name: name,
-            owner: region._id
-        }));
+        const landmarks = region.landmarks.map((landmark) => ({ ...landmark, ownerName: region.name }));
 
         const childPathQuery = `path.${region.path.length}`;
 
@@ -402,14 +403,11 @@ export class RegionResolvers {
             [childPathQuery]: region._id
         }, { _id: 1, name: 1, landmarks: 1 });
 
-        children.forEach((childRegion, index) => {
+        children.forEach((childRegion) => {
             if (!childRegion.landmarks)
                 return;
-            for (let landmarkName of childRegion.landmarks) {
-                landmarks.push({
-                    name: landmarkName,
-                    owner: childRegion._id
-                });
+            for (let landmark of childRegion.landmarks) {
+                landmarks.push({ ...landmark, ownerName: childRegion.name });
             }
         });
 
@@ -417,13 +415,100 @@ export class RegionResolvers {
 
         const startOfPage = (page - 1) * perPage;
 
-        const landmarksInPage = landmarks.slice(startOfPage, startOfPage + perPage);
 
         landmarks.sort((a, b) => a.name.localeCompare(b.name));
+
+        const landmarksInPage = landmarks.slice(startOfPage, startOfPage + perPage);
 
         return {
             landmarks: landmarksInPage,
             totalPageCount: pageCount
         }
+    }
+
+    @Mutation(() => StatusResult, { nullable: false })
+    async deleteLandmark(
+        @Arg("regionId") regionId: string,
+        @Arg("landmarkId") landmarkId: string,
+        @Ctx("req") req: RequestWithUserId
+    ) {
+        if (!req.userId)
+            return {
+                success: false,
+                error: "No current user in session."
+            };
+
+        const region = await RegionModel.findOne({
+            _id: regionId,
+            ownerId: req.userId
+        });
+
+        if (!region || !region.landmarks)
+            return {
+                success: false,
+                error: `No region found with _id: ${regionId}`
+            }
+
+        const prevLen = region.landmarks.length;
+        region.landmarks = region.landmarks.filter((landmark) => !landmark._id.equals(Types.ObjectId(landmarkId)));
+        if (region.landmarks.length === prevLen)
+            return {
+                success: false,
+                error: `No landmark found with _id: ${landmarkId}`
+            }
+
+        await RegionModel.updateOne({
+            _id: regionId,
+            ownerId: req.userId
+        }, {
+            landmarks: region.landmarks
+        });
+
+        return { success: true };
+    }
+
+    @Mutation(() => StatusResult, { nullable: false })
+    async editLandmark(
+        @Arg("regionId") regionId: string,
+        @Arg("editLandmark", () => EditLandmarkInput) editLandmark: EditLandmarkInput,
+        @Ctx("req") req: RequestWithUserId
+    ) {
+        if (!req.userId)
+            return {
+                success: false,
+                error: "No current user in session."
+            };
+
+        const region = await RegionModel.findOne({
+            _id: regionId,
+            ownerId: req.userId
+        });
+
+        if (!region || !region.landmarks)
+            return {
+                success: false,
+                error: `No region found with _id: ${regionId}`
+            }
+        let found = false;
+        for (let landmark of region.landmarks) {
+            if (landmark._id.equals(editLandmark._id)) {
+                landmark.name = editLandmark.name;
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            return {
+                success: false,
+                error: `No landmark found with _id: ${editLandmark._id}`
+            }
+
+        await RegionModel.updateOne({
+            _id: regionId,
+            ownerId: req.userId
+        }, {
+            landmarks: region.landmarks
+        });
+        return { success: true };
     }
 }

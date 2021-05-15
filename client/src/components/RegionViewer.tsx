@@ -3,18 +3,17 @@
 import { faAngleDown, faArrowLeft, faArrowRight, faPlus, faRedoAlt, faUndoAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrashAlt as farTrashAlt, faEdit as farEdit } from '@fortawesome/free-regular-svg-icons';
-import React, { useEffect, useState } from "react";
+import React, { SyntheticEvent, useEffect, useState } from "react";
 import Pagination from "./Pagination";
 
-import unknownFlag from '../media/unknown_flag.jpg';
-import { IAddLandmark, IChangeParent, IGetRegionById, Landmark, Region, RegionView } from "../types/Region";
+import { IAddLandmark, IChangeParent, IDeleteLandmark, IGetRegionById, Landmark, Region, RegionView } from "../types/Region";
 import { useMutation, useQuery } from "@apollo/client";
 import { GET_LANDMARKS, GET_REGION_BY_ID } from "../gql/regionQueries";
 import { Link, useHistory, useLocation, useParams } from "react-router-dom";
-import { truncateString } from "../utils/utils";
+import { getFlagURL, gqlSanitizeInput, truncateString, validateName } from "../utils/utils";
 import { TPS } from "../utils/tps";
 import Loader from "react-loader-spinner";
-import { ADD_LANDMARK, CHANGE_PARENT } from "../gql/regionMutations";
+import { ADD_LANDMARK, CHANGE_PARENT, DELETE_LANDMARK } from "../gql/regionMutations";
 import LandmarkItem from "./LandmarkItem";
 
 type Params = {
@@ -25,9 +24,10 @@ type Props = {
     tps: TPS;
     setPath: React.Dispatch<React.SetStateAction<string[]>>;
     setDisplayPath: React.Dispatch<React.SetStateAction<string[]>>;
+    displayPath: string[];
 }
 
-const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
+const RegionViewer = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
 
     const routeParams = useParams<Params>();
 
@@ -154,12 +154,15 @@ const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
         }
     }, [fadeIn]);
 
-    const perPage = 6;
+    const perPage = 9;
     const [page, setPage] = useState(1);
 
     const [newLandmarkName, setNewLandmarkName] = useState("");
 
+    const [landmarkToDelete, setLandmarkToDelete] = useState<Landmark | undefined>();
+
     const [addLandmark] = useMutation<IAddLandmark>(ADD_LANDMARK);
+    const [deleteLandmark] = useMutation<IDeleteLandmark>(DELETE_LANDMARK);
     const { data: landmarkData, loading: landmarkLoading, error: landmarkError, refetch: landmarkRefetch } = useQuery(GET_LANDMARKS, {
         variables: {
             _id: regionId,
@@ -171,14 +174,16 @@ const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
 
     useEffect(() => {
         (async () => {
+
             await landmarkRefetch();
         })()
     }, [page, landmarkRefetch]);
 
 
     useEffect(() => {
+        console.log(getFlagURL(displayPath));
         console.log(landmarkData);
-    }, [landmarkData]);
+    }, [landmarkData, displayPath]);
 
     const handlePageChange = async (newPage: number) => {
         setPage(newPage);
@@ -189,11 +194,16 @@ const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
         setNewLandmarkName(newValue);
     }
 
-    const handleAddMap = async () => {
-        const prevName = newLandmarkName;
+    const handleAddLandmark = async () => {
+        const landmark: Landmark = {
+            _id: "",
+            name: newLandmarkName,
+            owner: "",
+            ownerName: ""
+        };
         await tpsAdd({
             redo: async () => {
-                const { data } = await addLandmark({ variables: { _id: regionId, landmark: prevName } });
+                const { data } = await addLandmark({ variables: { _id: regionId, landmark: gqlSanitizeInput(landmark) } });
                 setNewLandmarkName("");
                 if (!data) {
                     console.error("Unknown error occurred.")
@@ -202,17 +212,78 @@ const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
 
                 const addStatus = data.addLandmark;
 
-                if (addStatus.error)
+                if ("error" in addStatus)
                     console.error(addStatus.error)
+                else {
+                    landmark._id = addStatus._id;
+                    landmark.owner = addStatus.owner;
+                    landmark.ownerName = addStatus.ownerName;
+                    await landmarkRefetch();
+                }
+            },
+            undo: async () => {
+                if (landmark._id.length === 0) {
+                    console.error("Unknown error occurred.")
+                    return;
+                }
+                const { data } = await deleteLandmark({ variables: { regionId: regionId, landmarkId: landmark._id } });
+                if (!data) {
+                    console.error("Unknown error occurred.")
+                    return;
+                }
+
+                const deleteStatus = data.deleteLandmark;
+
+                if (deleteStatus.error)
+                    console.error(deleteStatus.error)
+                else {
+                    await landmarkRefetch();
+                }
+            }
+        })
+    };
+
+    const handleConfirmDeleteLandmark = async (landmark: Landmark) => {
+        await tpsAdd({
+            redo: async () => {
+                const { data } = await deleteLandmark({ variables: { regionId: regionId, landmarkId: landmark._id } });
+                if (!data) {
+                    console.error("Unknown error occurred.")
+                    return;
+                }
+
+                const deleteStatus = data.deleteLandmark;
+
+                if (deleteStatus.error)
+                    console.error(deleteStatus.error)
                 else {
                     await landmarkRefetch();
                 }
             },
             undo: async () => {
-                // todo: add deletion
+                const { data } = await addLandmark({ variables: { _id: regionId, landmark: gqlSanitizeInput(landmark) } });
+                if (!data) {
+                    console.error("Unknown error occurred.")
+                    return;
+                }
+
+                const addStatus = data.addLandmark;
+
+                if ("error" in addStatus)
+                    console.error(addStatus.error)
+                else {
+                    await landmarkRefetch();
+                }
             }
-        })
+        });
+        setLandmarkToDelete(undefined);
     };
+
+    const handleDeleteLandmark = (landmark: Landmark) => {
+        setLandmarkToDelete(landmark);
+    };
+
+
 
     return (
         (regionLoading || loadingStart) && !loadingEnd ?
@@ -225,6 +296,25 @@ const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
                 </div>
                 :
                 (<div className="fade-in">
+                    {
+                        landmarkToDelete &&
+                        <div className={`modal ${landmarkToDelete && "is-active"}`}>
+                            <div className="modal-background" />
+                            <div className="modal-card">
+                                <header className="modal-card-head">
+                                    <p className="modal-card-title">Confirm landmark deletion</p>
+                                    <button className="delete" aria-label="close" onClick={() => setLandmarkToDelete(undefined)} />
+                                </header>
+                                <section className="modal-card-body has-text-dark">
+                                    Are you sure you want to delete the landmark "{landmarkToDelete.name}"?
+                    </section>
+                                <footer className="modal-card-foot">
+                                    <button className="button is-danger" onClick={() => handleConfirmDeleteLandmark(landmarkToDelete)}>Yes, delete</button>
+                                    <button className="button" onClick={() => setLandmarkToDelete(undefined)}>No, cancel</button>
+                                </footer>
+                            </div>
+                        </div>
+                    }
                     <div className={`level mt-0 mb-5`}>
                         <div className="level-left">
                             <div className="level-item buttons">
@@ -253,7 +343,7 @@ const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
                                 <div className="card ">
                                     <div className="card-image">
                                         <figure className="image is-4by3">
-                                            <img src={unknownFlag} alt="Placeholder image" />
+                                            <img src={getFlagURL(displayPath)} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = '/flags/unknown_flag.jpg' }} />
                                         </figure>
                                     </div>
                                     <div className="card-content">
@@ -321,14 +411,17 @@ const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
                                                                     </button>
                                                                 </Link>
                                                         }
+                                                        {
+                                                            !editingParent &&
+                                                            <button className="button is-small is-light is-info has-text-info" onClick={() => setEditingParent(true)}>
+                                                                <span
+                                                                    className={`icon click-icon ${false ? "has-text-grey-lighter" : "has-text-info"}`}
+                                                                >
+                                                                    <FontAwesomeIcon icon={farEdit} size="lg" />
+                                                                </span>
+                                                            </button>
+                                                        }
 
-                                                        <button className="button is-small is-light is-info has-text-info" disabled={false} onClick={() => setEditingParent(true)}>
-                                                            <span
-                                                                className={`icon click-icon ${false ? "has-text-grey-lighter" : "has-text-info"}`}
-                                                            >
-                                                                <FontAwesomeIcon icon={farEdit} size="lg" />
-                                                            </span>
-                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -387,13 +480,15 @@ const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
                                                             <Loader color="hsl(0, 0%, 86%)" type="TailSpin" />
                                                         </div>
                                                         :
-                                                        landmarkData && landmarkData.getLandmarks.landmarks.map(({ name, owner }: Landmark, index: number) => {
+                                                        landmarkData && landmarkData.getLandmarks.landmarks.map((landmark: Landmark, index: number) => {
                                                             return (
                                                                 <LandmarkItem
-                                                                    key={`${owner}-${name}-${index}`}
-                                                                    name={name}
-                                                                    deleteCallback={() => { }}
-                                                                    renameCallback={async () => { }}
+                                                                    key={`${landmark.owner}-${landmark.name}-${index}`}
+                                                                    landmark={landmark}
+                                                                    currentRegionId={regionId}
+                                                                    deleteCallback={handleDeleteLandmark}
+                                                                    refetch={landmarkRefetch}
+                                                                    tps={tps}
                                                                 />
                                                             )
                                                         })
@@ -416,7 +511,7 @@ const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
                                                     />
                                                 </div>
                                                 <div className="control">
-                                                    <button className="button is-info is-medium" onClick={handleAddMap}>
+                                                    <button className="button is-info is-medium" disabled={!validateName(newLandmarkName)} onClick={handleAddLandmark}>
                                                         <span className="icon-text level">
                                                             <span className="icon level-item">
                                                                 <FontAwesomeIcon icon={faPlus} size="sm" />

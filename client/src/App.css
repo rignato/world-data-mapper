@@ -9,6 +9,11 @@
   margin: auto;
 }
 
+.panel-block-landmark {
+  min-height: 1rem !important;
+  height: 3.1rem !important;
+}
+
 .map-select-container {
   min-height: 27.5rem;
   height: 27.5rem;

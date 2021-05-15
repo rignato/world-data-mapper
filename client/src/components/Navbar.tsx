@@ -60,7 +60,7 @@ const Navbar = ({ user, refetchUser, path, displayPath }: Props) => {
                 {
                   pages.map((page) => page === '...' ? -1 : parseInt(page) - 1).map((page) => (
                     page < 0 ?
-                      <li>
+                      <li key={`${page}-${path[page]}`}>
                         <div className="has-text-light has-text-weight-semibold mt-4 px-4">
                           ...
                         </div>
@@ -98,9 +98,9 @@ const Navbar = ({ user, refetchUser, path, displayPath }: Props) => {
                   </div>
                   :
                   <div className="level">
-                    <Link className="navbar-item level-item is-size-6 has-text-light semi-rounded has-text-weight-semibold" to="/account">
+                    <button className="navbar-item button is-ghost level-item is-size-6 has-text-light semi-rounded has-text-weight-semibold" onClick={() => history.push('/account')}>
                       {user.name}
-                    </Link>
+                    </button>
                     <div className="level-item px-6"></div>
                     <button className="button level-item is-info has-text-weight-semibold" onClick={handleLogout}>
                       Log out

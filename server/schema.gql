@@ -8,6 +8,11 @@ The javascript `Date` as string. Type represents date and time as the ISO Date s
 """
 scalar DateTime
 
+input EditLandmarkInput {
+  _id: ID!
+  name: String!
+}
+
 input EditRegionInput {
   _id: ID!
   capital: String!
@@ -20,9 +25,20 @@ type Error {
 }
 
 type Landmark {
+  _id: ID!
   name: String!
   owner: String!
+  ownerName: String!
 }
+
+input LandmarkInput {
+  _id: ID!
+  name: String!
+  owner: String = ""
+  ownerName: String = ""
+}
+
+union LandmarkResult = Error | Landmark
 
 type Landmarks {
   error: String
@@ -42,12 +58,14 @@ type Maps {
 }
 
 type Mutation {
-  addLandmark(_id: String!, landmark: String!): StatusResult!
+  addLandmark(_id: String!, landmark: LandmarkInput!): LandmarkResult!
   addMap(name: String!): StatusResult!
   addRegion(parentId: String!, region: RegionInput): RegionResult!
   changeParent(_id: String!, parentId: String!): StatusResult!
+  deleteLandmark(landmarkId: String!, regionId: String!): StatusResult!
   deleteMap(_id: String!): StatusResult!
   deleteRegion(_id: String!): StatusResult!
+  editLandmark(editLandmark: EditLandmarkInput!, regionId: String!): StatusResult!
   editRegion(regionToEdit: EditRegionInput!): StatusResult!
   login(email: String!, password: String!): UserResult!
   logout: StatusResult!
@@ -71,7 +89,7 @@ type Region {
   capital: String!
   createdAt: DateTime!
   displayPath: [String!]!
-  landmarks: [String!]!
+  landmarks: [Landmark!]!
   leader: String!
   name: String!
   nextSibling: ID
@@ -85,7 +103,7 @@ input RegionInput {
   capital: String!
   createdAt: DateTime!
   displayPath: [String!]!
-  landmarks: [String!]!
+  landmarks: [LandmarkInput!]!
   leader: String!
   name: String!
   path: [String!]!
@@ -107,7 +125,7 @@ type RegionView {
   capital: String!
   createdAt: DateTime!
   displayPath: [String!]!
-  landmarks: [String!]!
+  landmarks: [Landmark!]!
   leader: String!
   name: String!
   nextSibling: ID
