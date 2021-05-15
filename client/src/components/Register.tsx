@@ -32,7 +32,7 @@ const Register = (props: Props) => {
 
     const [error, setError] = useState("");
 
-    const history = useHistory<LocationState>();
+    let history = useHistory<LocationState>();
 
     const [register] = useMutation<IRegister>(REGISTER);
 

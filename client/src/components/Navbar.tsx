@@ -1,60 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import Logo from './Logo';
 
 import { UserResult, ILogout, IGetUser } from '../types/User';
 
-import { ApolloQueryResult, OperationVariables, useMutation, useQuery } from '@apollo/client';
+import { ApolloQueryResult, OperationVariables, useMutation } from '@apollo/client';
 
 import { LOGOUT } from '../gql/userMutations';
 
 import { useHistory } from "react-router";
-import { IGetRegionById, Region } from '../types/Region';
-import { GET_REGION_BY_ID } from '../gql/regionQueries';
+import { usePaginate } from './Pagination';
+import { useEffect } from 'react';
 
 type Props = {
   user?: UserResult;
   refetchUser: (variables?: Partial<OperationVariables> | undefined) => Promise<ApolloQueryResult<IGetUser>>
+  path: string[];
+  displayPath: string[];
 };
 
-type Params = {
-  mapId: string;
-}
+const Navbar = ({ user, refetchUser, path, displayPath }: Props) => {
 
-const Navbar = ({ user, refetchUser }: Props) => {
-
-  const history = useHistory();
-
-  const routeParams = useParams<Params>();
-
-  let location = useLocation();
-
-  const searchParams = new URLSearchParams(location.search);
-
-  const [parentId, setParentId] = useState(
-    searchParams.get("subregion") ? searchParams.get("subregion") : routeParams.mapId
-  );
-
-  const { data: regionData, refetch: refetchRegionData } = useQuery<IGetRegionById>(GET_REGION_BY_ID, {
-    variables: { _id: parentId },
-    skip: !parentId
-  });
-
-  useEffect(() => {
-    if (parentId)
-      (async () => {
-        await refetchRegionData();
-      })()
-  }, [parentId, refetchRegionData]);
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const newParentId = searchParams.get("subregion") ? searchParams.get("subregion") : routeParams.mapId;
-    setParentId(newParentId);
-  }, [location, routeParams.mapId]);
-
-
+  let history = useHistory();
 
   const [logout] = useMutation<ILogout>(LOGOUT);
 
@@ -70,6 +37,12 @@ const Navbar = ({ user, refetchUser }: Props) => {
     history.push('/');
   }
 
+  const { pages, updatePages } = usePaginate(path.length - 1, path.length, 1);
+
+  useEffect(() => {
+    updatePages(path.length - 1, path.length, 1);
+  }, [path, displayPath, updatePages]);
+
   return (
     <nav className="navbar">
       <div className="container">
@@ -79,37 +52,36 @@ const Navbar = ({ user, refetchUser }: Props) => {
           </Link>
         </div>
         <div className="navbar-menu">
-          {
-            parentId && regionData && "displayPath" in regionData.getRegionById &&
-            (<span className="navbar-start">
-              <span className="navbar-item"></span>
-              <span className="navbar-item"></span>
-              <nav className="navbar-item breadcrumb is-centered" aria-label="breadcrumbs">
-                <ul>
-                  {
-                    regionData.getRegionById.displayPath.concat(regionData.getRegionById.name).map((regionName, index) => (
+          <span className="navbar-start">
+            <span className="navbar-item"></span>
+            <span className="navbar-item"></span>
+            <nav className="navbar-item breadcrumb is-centered" aria-label="breadcrumbs">
+              <ul>
+                {
+                  pages.map((page) => page === '...' ? -1 : parseInt(page) - 1).map((page) => (
+                    page < 0 ?
+                      <li>
+                        <div className="has-text-light has-text-weight-semibold mt-4 px-4">
+                          ...
+                        </div>
+                      </li>
+                      :
                       <li>
                         <Link to={{
-                          pathname: `/maps/${index === 0 && (regionData.getRegionById as Region).path.length === 0 ? (regionData.getRegionById as Region)._id : (regionData.getRegionById as Region).path[0]}`,
-                          search: `${index === 0 ? "" :
-                            `?subregion=${index === (regionData.getRegionById as Region).path.length
-                              ?
-                              (regionData.getRegionById as Region)._id
-                              :
-                              (regionData.getRegionById as Region).path[index]
-                            }`}`
+                          pathname: `/maps/${path[page]}`,
+                          search: `${page === 0 ? "" :
+                            `?subregion=${path[page]}`}`
                         }}>
-                          <button className="button has-text-light is-ghost has-text-weight-semibold">
-                            {regionName}
+                          <button className="button has-text-light is-ghost has-text-weight-semibold" autoFocus={false}>
+                            {displayPath[page]}
                           </button>
                         </Link>
                       </li>
-                    ))
-                  }
-                </ul>
-              </nav>
-            </span>)
-          }
+                  ))
+                }
+              </ul>
+            </nav>
+          </span>
 
           <div className="navbar-end">
             <span className="navbar-item">

@@ -74,6 +74,26 @@ export class Region {
 }
 
 @ObjectType()
+export class Landmark {
+    @Field()
+    name: string;
+    @Field(() => String)
+    owner: Types.ObjectId;
+}
+
+@ObjectType()
+export class Landmarks {
+    @Field(() => [Landmark])
+    landmarks: Landmark[];
+
+    @Field({ defaultValue: "" })
+    error: string;
+
+    @Field({ defaultValue: 0 })
+    totalPageCount: number;
+}
+
+@ObjectType()
 export class RegionView {
     @Field(() => ID)
     _id: Types.ObjectId;
@@ -158,8 +178,23 @@ export class EditRegionInput {
 }
 
 @ObjectType()
+export class RegionPath {
+    @Field(() => ID)
+    _id: Types.ObjectId;
+
+    @Field()
+    name: string;
+
+    @Field(() => [String])
+    path: string[];
+
+    @Field(() => [String])
+    displayPath: string[];
+}
+
+@ObjectType()
 export class Regions {
-    @Field(() => [Region], { defaultValue: [] })
+    @Field(() => [Region])
     regions: Region[];
 
     @Field({ defaultValue: "" })
@@ -168,8 +203,11 @@ export class Regions {
     @Field({ defaultValue: 0 })
     totalPageCount: number;
 
-    @Field(() => [String], { defaultValue: [] })
+    @Field(() => [String])
     displayPath?: string[]
+
+    @Field(() => [ID])
+    path?: Types.ObjectId[];
 }
 
 export const RegionResult = createUnionType({
@@ -192,6 +230,18 @@ export const RegionViewResult = createUnionType({
             return Error;
         } else {
             return RegionView;
+        }
+    }
+});
+
+export const RegionPathResult = createUnionType({
+    name: 'RegionPathResult',
+    types: () => [RegionPath, Error],
+    resolveType: data => {
+        if ("error" in data) {
+            return Error;
+        } else {
+            return RegionPath;
         }
     }
 });

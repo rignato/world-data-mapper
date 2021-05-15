@@ -1,27 +1,38 @@
-import { faAngleDown, faPlus, faRedoAlt, faUndoAlt } from "@fortawesome/free-solid-svg-icons";
+/* eslint-disable jsx-a11y/anchor-has-content */
+/* eslint-disable jsx-a11y/anchor-is-valid */
+import { faAngleDown, faArrowLeft, faArrowRight, faPlus, faRedoAlt, faUndoAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrashAlt as farTrashAlt, faEdit as farEdit } from '@fortawesome/free-regular-svg-icons';
 import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
 
 import unknownFlag from '../media/unknown_flag.jpg';
-import { IGetRegionById, RegionView } from "../types/Region";
-import { useQuery } from "@apollo/client";
-import { GET_REGION_BY_ID } from "../gql/regionQueries";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { IAddLandmark, IChangeParent, IGetRegionById, Landmark, Region, RegionView } from "../types/Region";
+import { useMutation, useQuery } from "@apollo/client";
+import { GET_LANDMARKS, GET_REGION_BY_ID } from "../gql/regionQueries";
+import { Link, useHistory, useLocation, useParams } from "react-router-dom";
 import { truncateString } from "../utils/utils";
-import { useTPS } from "../utils/tps";
+import { TPS } from "../utils/tps";
 import Loader from "react-loader-spinner";
+import { ADD_LANDMARK, CHANGE_PARENT } from "../gql/regionMutations";
+import LandmarkItem from "./LandmarkItem";
 
 type Params = {
     mapId: string;
 };
 
-const RegionViewer = () => {
+type Props = {
+    tps: TPS;
+    setPath: React.Dispatch<React.SetStateAction<string[]>>;
+    setDisplayPath: React.Dispatch<React.SetStateAction<string[]>>;
+}
+
+const RegionViewer = ({ tps, setPath, setDisplayPath }: Props) => {
 
     const routeParams = useParams<Params>();
 
     let location = useLocation();
+    let history = useHistory();
 
     const searchParams = new URLSearchParams(location.search);
 
@@ -29,14 +40,24 @@ const RegionViewer = () => {
         searchParams.get("subregion") ? searchParams.get("subregion") : null
     );
 
-    const [sortedBy, setSortedBy] = useState<string | undefined>(
-        searchParams.get("sortedBy") ? searchParams.get("sortedBy")! : undefined
+    const [sortBy, setsortBy] = useState<string | undefined>(
+        searchParams.get("sortBy") ? searchParams.get("sortBy")! : undefined
     );
 
-    const [reversed, setReversed] = useState(Boolean(searchParams.get("reversed")));
+    const [reversed, setReversed] = useState(searchParams.get("reversed") ? searchParams.get("reversed") === 'true' : false);
+
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        setsortBy(searchParams.get("sortBy") ? searchParams.get("sortBy")! : undefined);
+        setReversed(searchParams.get("reversed") ? searchParams.get("reversed") === 'true' : false)
+    }, [location])
 
     const { data: regionData, loading: regionLoading, refetch: refetchRegionData } = useQuery<IGetRegionById>(GET_REGION_BY_ID, {
-        variables: { _id: regionId, sortedBy: sortedBy, reversed: reversed },
+        variables: {
+            _id: new URLSearchParams(location.search).get("subregion") ? new URLSearchParams(location.search).get("subregion") : null,
+            sortBy: new URLSearchParams(location.search).get("sortBy") ? new URLSearchParams(location.search).get("sortBy") : undefined,
+            reversed: new URLSearchParams(location.search).get("reversed") ? new URLSearchParams(location.search).get("reversed") === 'true' : false
+        },
         skip: !regionId
     });
 
@@ -46,8 +67,15 @@ const RegionViewer = () => {
         if (regionId)
             (async () => {
                 await refetchRegionData();
+                if (regionData && !('error' in regionData.getRegionById)) {
+                    setDisplayPath([...regionData.getRegionById.displayPath, regionData.getRegionById.name]);
+                    setPath([...regionData.getRegionById.path, regionData.getRegionById._id]);
+                } else {
+                    setPath([]);
+                    setDisplayPath([]);
+                }
             })()
-    }, [regionId, refetchRegionData]);
+    }, [location, regionId, refetchRegionData, regionData, setPath, setDisplayPath]);
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
@@ -55,7 +83,46 @@ const RegionViewer = () => {
         setregionId(newregionId);
     }, [location, routeParams.mapId]);
 
-    const { tpsAdd, tpsClear, tpsUndo, hasUndo, tpsRedo, hasRedo } = useTPS();
+    const { tpsAdd, tpsClear, tpsUndo, hasUndo, tpsRedo, hasRedo } = tps;
+
+    const [changeParent] = useMutation<IChangeParent>(CHANGE_PARENT);
+
+    const handleChangeParent = async (newParentId: string) => {
+        if (!regionData || 'error' in regionData.getRegionById)
+            return;
+        const region = regionData.getRegionById;
+        const prevParentId = region.path[region.path.length - 1];
+        await tpsAdd({
+            redo: async () => {
+                const { data } = await changeParent({ variables: { _id: regionId, parentId: newParentId } });
+                if (!data) {
+                    console.error("Unknown error occurred.");
+                    return;
+                }
+
+                const changeParentRes = data.changeParent;
+                if (changeParentRes.error)
+                    console.error(changeParentRes.error)
+                else {
+                    await refetchRegionData();
+                }
+            },
+            undo: async () => {
+                const { data } = await changeParent({ variables: { _id: regionId, parentId: prevParentId } });
+                if (!data) {
+                    console.error("Unknown error occurred.");
+                    return;
+                }
+
+                const changeParentRes = data.changeParent;
+                if (changeParentRes.error)
+                    console.error(changeParentRes.error)
+                else {
+                    await refetchRegionData();
+                }
+            }
+        });
+    };
 
     const [loadingStart, setLoadingStart] = useState(regionLoading);
     const [fadeOut, setFadeOut] = useState(false);
@@ -87,6 +154,66 @@ const RegionViewer = () => {
         }
     }, [fadeIn]);
 
+    const perPage = 6;
+    const [page, setPage] = useState(1);
+
+    const [newLandmarkName, setNewLandmarkName] = useState("");
+
+    const [addLandmark] = useMutation<IAddLandmark>(ADD_LANDMARK);
+    const { data: landmarkData, loading: landmarkLoading, error: landmarkError, refetch: landmarkRefetch } = useQuery(GET_LANDMARKS, {
+        variables: {
+            _id: regionId,
+            page: page,
+            perPage: perPage
+        },
+        skip: !regionId
+    });
+
+    useEffect(() => {
+        (async () => {
+            await landmarkRefetch();
+        })()
+    }, [page, landmarkRefetch]);
+
+
+    useEffect(() => {
+        console.log(landmarkData);
+    }, [landmarkData]);
+
+    const handlePageChange = async (newPage: number) => {
+        setPage(newPage);
+    };
+
+    const handleNewLandmarkNameChange = async (e: React.FormEvent<HTMLInputElement>) => {
+        const newValue = e.currentTarget.value;
+        setNewLandmarkName(newValue);
+    }
+
+    const handleAddMap = async () => {
+        const prevName = newLandmarkName;
+        await tpsAdd({
+            redo: async () => {
+                const { data } = await addLandmark({ variables: { _id: regionId, landmark: prevName } });
+                setNewLandmarkName("");
+                if (!data) {
+                    console.error("Unknown error occurred.")
+                    return;
+                }
+
+                const addStatus = data.addLandmark;
+
+                if (addStatus.error)
+                    console.error(addStatus.error)
+                else {
+                    await landmarkRefetch();
+                }
+            },
+            undo: async () => {
+                // todo: add deletion
+            }
+        })
+    };
+
     return (
         (regionLoading || loadingStart) && !loadingEnd ?
             <div className="container has-text-centered" >
@@ -98,32 +225,29 @@ const RegionViewer = () => {
                 </div>
                 :
                 (<div className="fade-in">
-                    {
-                        regionData && regionData.getRegionById && "name" in regionData.getRegionById &&
-                        <div className={`level mt-0 mb-5`}>
-                            <div className="level-left">
-                                <div className="level-item buttons">
-                                    <button className="button is-dark" disabled={!hasUndo} onClick={tpsUndo}>
-                                        <span className="icon">
-                                            <FontAwesomeIcon icon={faUndoAlt} size="lg" />
-                                        </span>
-                                    </button>
-                                    <button className="button is-dark" disabled={!hasRedo} onClick={tpsRedo}>
-                                        <span className="icon">
-                                            <FontAwesomeIcon icon={faRedoAlt} size="lg" />
-                                        </span>
-                                    </button>
-
-                                </div>
+                    <div className={`level mt-0 mb-5`}>
+                        <div className="level-left">
+                            <div className="level-item buttons">
+                                <button className="button is-dark" disabled={!hasUndo} onClick={tpsUndo}>
+                                    <span className="icon">
+                                        <FontAwesomeIcon icon={faUndoAlt} size="lg" />
+                                    </span>
+                                </button>
+                                <button className="button is-dark" disabled={!hasRedo} onClick={tpsRedo}>
+                                    <span className="icon">
+                                        <FontAwesomeIcon icon={faRedoAlt} size="lg" />
+                                    </span>
+                                </button>
 
                             </div>
+
                         </div>
-                    }
+                    </div>
 
                     <div className="columns">
 
                         {
-                            regionData && regionData.getRegionById && "name" in regionData.getRegionById &&
+                            regionData && regionData.getRegionById && !('error' in regionData.getRegionById) &&
 
                             <div className="column">
                                 <div className="card ">
@@ -157,7 +281,7 @@ const RegionViewer = () => {
                                                                 ?
                                                                 <div className="dropdown is-active">
                                                                     <div className="dropdown-trigger">
-                                                                        <button className="button" aria-haspopup="true" aria-controls="dropdown-menu">
+                                                                        <button className="button mb-0" aria-haspopup="true" aria-controls="dropdown-menu">
                                                                             <span>Choose parent</span>
                                                                             <span className="icon is-small">
                                                                                 <FontAwesomeIcon icon={faAngleDown} />
@@ -165,10 +289,21 @@ const RegionViewer = () => {
                                                                         </button>
                                                                     </div>
                                                                     <div className="dropdown-menu" id="dropdown-menu" role="menu">
-                                                                        <div className="dropdown-content is-scrollable">
-                                                                            {regionData.getRegionById.potentialParentNames.map((item) => (
-                                                                                <a href='#' className="dropdown-item" onClick={() => setEditingParent(false)}>{item}</a>
-                                                                            ))}
+                                                                        <div className="dropdown-content is-scrollable py-0">
+                                                                            {
+                                                                                regionData && !('error' in regionData.getRegionById) && regionData.getRegionById.potentialParentIds.map((item, index) => (
+                                                                                    regionData && !('error' in regionData.getRegionById) && (item === regionData.getRegionById.path[regionData.getRegionById.path.length - 1] ?
+                                                                                        <a href='#' className="dropdown-item is-active" onClick={() => setEditingParent(false)}>{regionData && !('error' in regionData.getRegionById) && regionData.getRegionById.potentialParentNames[index]}</a>
+                                                                                        :
+                                                                                        <a href='#' className="dropdown-item" onClick={async () => {
+                                                                                            if (regionData && !('error' in regionData.getRegionById))
+                                                                                                await handleChangeParent(regionData.getRegionById.potentialParentIds[index]);
+                                                                                            setEditingParent(false);
+                                                                                        }}>{regionData && !('error' in regionData.getRegionById) && regionData.getRegionById.potentialParentNames[index]}</a>
+                                                                                    )
+
+                                                                                ))
+                                                                            }
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -244,21 +379,44 @@ const RegionViewer = () => {
 
                                         </p>
                                         <div className="container map-select-container">
-
+                                            {
+                                                landmarkError ? `Error loading maps ${landmarkError}`
+                                                    :
+                                                    landmarkLoading ?
+                                                        <div className="section is-medium">
+                                                            <Loader color="hsl(0, 0%, 86%)" type="TailSpin" />
+                                                        </div>
+                                                        :
+                                                        landmarkData && landmarkData.getLandmarks.landmarks.map(({ name, owner }: Landmark, index: number) => {
+                                                            return (
+                                                                <LandmarkItem
+                                                                    key={`${owner}-${name}-${index}`}
+                                                                    name={name}
+                                                                    deleteCallback={() => { }}
+                                                                    renameCallback={async () => { }}
+                                                                />
+                                                            )
+                                                        })
+                                            }
                                         </div>
                                         <div className="panel-block">
 
-                                            <Pagination pageCount={1} currentPage={1} onPageChange={() => { }} />
+                                            {
+                                                landmarkData && landmarkData.getLandmarks &&
+                                                <Pagination pageCount={landmarkData.getLandmarks.totalPageCount} currentPage={page} onPageChange={handlePageChange} />
+                                            }
                                             <div className="field is-centered has-addons has-addons-centered">
                                                 <div className="control">
                                                     <input
                                                         className="input is-medium"
                                                         type="text"
                                                         placeholder="Enter landmark name"
+                                                        value={newLandmarkName}
+                                                        onChange={handleNewLandmarkNameChange}
                                                     />
                                                 </div>
                                                 <div className="control">
-                                                    <button className="button is-info is-medium">
+                                                    <button className="button is-info is-medium" onClick={handleAddMap}>
                                                         <span className="icon-text level">
                                                             <span className="icon level-item">
                                                                 <FontAwesomeIcon icon={faPlus} size="sm" />
@@ -279,7 +437,49 @@ const RegionViewer = () => {
 
 
                     </div>
+                    <div className={`level mt-0 mb-5`}>
+                        <div className="level-item">
+                            <button className="button is-dark" onClick={() => {
+                                tpsClear();
+                                console.log(reversed);
+                                history.push({
+                                    pathname: location.pathname,
+                                    search: `subregion=${(regionData!.getRegionById as RegionView).previousSibling}${sortBy ? `&sortBy=${sortBy}` : ''}&reversed=${reversed}`
+                                })
+                            }}
+                                disabled={regionData && 'previousSibling' in regionData.getRegionById ? regionData.getRegionById.previousSibling === null : true}>
 
+                                <span className="icon-text">
+                                    <span className="icon">
+                                        <FontAwesomeIcon icon={faArrowLeft} size="lg" />
+                                    </span>
+                                    <span>Previous subregion</span>
+
+
+                                </span>
+                            </button>
+                        </div>
+                        <div className="level-item">
+                            <button className="button is-dark" onClick={() => {
+                                tpsClear();
+                                console.log(reversed);
+                                history.push({
+                                    pathname: location.pathname,
+                                    search: `subregion=${(regionData!.getRegionById as RegionView).nextSibling}${sortBy ? `&sortBy=${sortBy}` : ''}&reversed=${reversed}`
+                                })
+                            }}
+                                disabled={regionData && 'nextSibling' in regionData.getRegionById ? regionData.getRegionById.nextSibling === null : true}>
+
+                                <span className="icon-text">
+                                    <span>Next subregion</span>
+                                    <span className="icon">
+                                        <FontAwesomeIcon icon={faArrowRight} size="lg" />
+                                    </span>
+
+                                </span>
+                            </button>
+                        </div>
+                    </div>
                 </div>)
     );
 };

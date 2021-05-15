@@ -9,6 +9,7 @@ export const REGION_FIELDS = gql`\
       path
       displayPath
       landmarks
+      createdAt
     }
 `;
 
@@ -21,6 +22,7 @@ export const REGION_VIEW_FIELDS = gql`\
       path
       displayPath
       landmarks
+      createdAt
       subregionCount
       previousSibling
       nextSibling

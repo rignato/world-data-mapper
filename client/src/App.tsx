@@ -14,10 +14,16 @@ import MapSelect from './components/MapSelect';
 import RegionTable from './components/RegionTable';
 import RegionViewer from './components/RegionViewer';
 import UpdateAccount from './components/UpdateAccount';
+import { useTPS } from './utils/tps';
 
 const App = () => {
 
   const { data: userData, loading: userLoading, error: userError, refetch: refetchUser } = useQuery<IGetUser>(GET_USER);
+
+  const tps = useTPS();
+
+  const [path, setPath] = useState<string[]>([]);
+  const [displayPath, setDisplayPath] = useState<string[]>([]);
 
   const [loadingStart, setLoadingStart] = useState(userLoading);
   const [fadeOut, setFadeOut] = useState(false);
@@ -68,6 +74,8 @@ const App = () => {
             user={userData?.getUser}
             refetchUser={refetchUser}
             showGlobe={userLoading ? false : !userData?.getUser || ("error" in userData?.getUser)}
+            path={path}
+            displayPath={displayPath}
             body={
               <div className="container has-text-centered" >
                 <p className="title has-text-weight-medium">
@@ -91,6 +99,8 @@ const App = () => {
             loadingStart={loadingStart}
             loadingEnd={loadingEnd}
             fadeOut={fadeOut}
+            path={path}
+            displayPath={displayPath}
             body={<MapSelect user={userData?.getUser} fadeIn={fadeIn} />}
           />
         </Route>
@@ -105,7 +115,9 @@ const App = () => {
             loadingStart={loadingStart}
             loadingEnd={loadingEnd}
             fadeOut={fadeOut}
-            body={<RegionTable />}
+            path={path}
+            displayPath={displayPath}
+            body={<RegionTable tps={tps} setPath={setPath} setDisplayPath={setDisplayPath} />}
           />
         </Route>
 
@@ -119,7 +131,9 @@ const App = () => {
             loadingStart={loadingStart}
             loadingEnd={loadingEnd}
             fadeOut={fadeOut}
-            body={<RegionViewer />}
+            path={path}
+            displayPath={displayPath}
+            body={<RegionViewer tps={tps} setPath={setPath} setDisplayPath={setDisplayPath} />}
           />
         </Route>
 
@@ -129,6 +143,8 @@ const App = () => {
             refetchUser={refetchUser}
             titleText="Login to your account."
             showGlobe
+            path={path}
+            displayPath={displayPath}
             body={
               <Login refetchUser={refetchUser} />
             }
@@ -140,6 +156,8 @@ const App = () => {
             refetchUser={refetchUser}
             titleText="Create an account."
             showGlobe
+            path={path}
+            displayPath={displayPath}
             body={
               <Register />
             }
@@ -154,6 +172,8 @@ const App = () => {
                 refetchUser={refetchUser}
                 titleText="Update your account info."
                 showGlobe
+                path={path}
+                displayPath={displayPath}
                 body={
                   <UpdateAccount user={userData?.getUser as User} refetch={refetchUser} />
                 }

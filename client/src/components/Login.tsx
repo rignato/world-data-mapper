@@ -22,7 +22,7 @@ const Login = ({ refetchUser }: Props) => {
 
     const [login] = useMutation<ILogin>(LOGIN);
 
-    const history = useHistory();
+    let history = useHistory();
 
     const updateEmail = (e: React.FormEvent<HTMLInputElement>) => {
         setEmail(e.currentTarget.value);

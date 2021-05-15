@@ -14,7 +14,6 @@ const cache = new InMemoryCache({
 		of the number id so that objects are refered to consistently across the
 		client and server
 	*/
-	dataIdFromObject: object => `${object.__typename}:${object._id}`,
 	typePolicies: {
 		Query: {
 			fields: {

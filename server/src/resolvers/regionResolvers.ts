@@ -4,7 +4,7 @@ import { Resolver, Mutation, Query, Ctx, Arg, Int } from "type-graphql";
 
 import { FilterQuery, Types } from 'mongoose';
 import { IntResult, StatusResult } from '../schemas/Utils';
-import { RegionModel, Regions, Map, Maps, RegionResult, Region, RegionInput, EditRegionInput, RegionViewResult } from '../schemas/Region';
+import { RegionModel, Regions, Map, Maps, RegionResult, Region, RegionInput, EditRegionInput, RegionViewResult, RegionPathResult, Landmarks } from '../schemas/Region';
 
 @Resolver()
 export class RegionResolvers {
@@ -59,8 +59,35 @@ export class RegionResolvers {
         return {
             regions: regionsInPage,
             totalPageCount: pageCount,
-            displayPath: [...parent.displayPath, parent.name]
+            displayPath: [...parent.displayPath, parent.name],
+            path: [...parent.path, parent._id]
         }
+    }
+    @Query(() => RegionPathResult, { nullable: false })
+    async getRegionPath(
+        @Arg("_id") _id: string,
+        @Ctx("req") req: RequestWithUserId
+    ) {
+        if (!req.userId)
+            return {
+                error: "No current user in session."
+            };
+
+        const region = await RegionModel.findOne({
+            _id: Types.ObjectId(_id),
+            ownerId: req.userId
+        });
+
+        if (!region)
+            return { error: `No region found with _id: ${_id} for current user` };
+
+        return {
+            _id: region._id,
+            name: region.name,
+            path: region.path,
+            displayPath: region.displayPath
+        };
+
     }
 
     @Query(() => RegionViewResult, { nullable: false })
@@ -90,6 +117,7 @@ export class RegionResolvers {
                         error: `Invalid sortBy key: ${sortBy}`
                     };
                 allRegions.sort((a, b) => a.toObject()[sortBy].localeCompare(b.toObject()[sortBy]) * (reversed ? -1 : 1));
+                console.log(allRegions.map((r) => ({ _id: r._id, name: r.name, capital: r.capital })));
             } else {
                 allRegions.sort((a, b) => +a.createdAt - +b.createdAt);
             }
@@ -107,6 +135,7 @@ export class RegionResolvers {
                     break;
                 }
             }
+            console.log(previousSibling, region._id, nextSibling)
             const childPathQuery = `path.${region.path.length}`;
             const subregionCount = await RegionModel.countDocuments({
                 ownerId: req.userId,
@@ -128,7 +157,7 @@ export class RegionResolvers {
                 })]
             };
 
-            console.log(JSON.stringify(possibleParentsQuery, undefined, 2))
+            // console.log(JSON.stringify(possibleParentsQuery, undefined, 2))
 
             const possibleParents = region.path.length > 0 ? await RegionModel.find(possibleParentsQuery) : [];
 
@@ -257,5 +286,144 @@ export class RegionResolvers {
             error: `No region found with _id: ${regionToEdit._id}`
         }
 
+    }
+
+    @Mutation(() => StatusResult, { nullable: false })
+    async changeParent(
+        @Arg("_id") _id: string,
+        @Arg("parentId") parentId: string,
+        @Ctx("req") req: RequestWithUserId
+    ) {
+        if (!req.userId)
+            return {
+                success: false,
+                error: "No current user in session."
+            };
+
+        const region = await RegionModel.findOne({
+            _id: _id,
+            ownerId: req.userId
+        });
+
+        if (!region)
+            return {
+                success: false,
+                error: `No region found with _id: ${_id}`
+            }
+
+        const parent = await RegionModel.findOne({
+            _id: parentId,
+            ownerId: req.userId
+        });
+
+        if (!parent)
+            return {
+                success: false,
+                error: `No parent found with _id: ${parentId}`
+            }
+
+        const newPath = [...parent.path, parent._id];
+        const newDisplayPath = [...parent.displayPath, parent.name];
+
+        await region.updateOne({
+            path: newPath,
+            displayPath: newDisplayPath,
+            createdAt: Date.now()
+        });
+
+        return { success: true };
+    }
+
+    @Mutation(() => StatusResult, { nullable: false })
+    async addLandmark(
+        @Arg("_id") _id: string,
+        @Arg("landmark") landmark: string,
+        @Ctx("req") req: RequestWithUserId
+    ) {
+        if (!req.userId)
+            return {
+                success: false,
+                error: "No current user in session."
+            };
+
+        const region = await RegionModel.findOne({
+            _id: _id,
+            ownerId: req.userId
+        });
+
+        if (!region || !region.landmarks)
+            return {
+                success: false,
+                error: `No region found with _id: ${_id}`
+            }
+
+        region.landmarks.push(landmark);
+        await RegionModel.updateOne({
+            _id: _id,
+            ownerId: req.userId
+        }, {
+            landmarks: region.landmarks
+        });
+
+        return { success: true };
+    }
+
+    @Query(() => Landmarks, { nullable: false })
+    async getLandmarks(
+        @Arg("_id") _id: string,
+        @Arg("page", () => Int, { defaultValue: 1 }) page: number,
+        @Arg("perPage", () => Int, { defaultValue: 10 }) perPage: number,
+        @Ctx("req") req: RequestWithUserId
+    ) {
+        if (!req.userId)
+            return {
+                error: "No current user in session."
+            };
+
+        const region = await RegionModel.findOne({
+            _id: _id,
+            ownerId: req.userId
+        });
+
+        if (!region || !region.landmarks)
+            return {
+                error: `No region found with _id: ${_id}`
+            }
+
+        const landmarks = region.landmarks.map((name) => ({
+            name: name,
+            owner: region._id
+        }));
+
+        const childPathQuery = `path.${region.path.length}`;
+
+        const children = await RegionModel.find({
+            ownerId: req.userId,
+            [childPathQuery]: region._id
+        }, { _id: 1, name: 1, landmarks: 1 });
+
+        children.forEach((childRegion, index) => {
+            if (!childRegion.landmarks)
+                return;
+            for (let landmarkName of childRegion.landmarks) {
+                landmarks.push({
+                    name: landmarkName,
+                    owner: childRegion._id
+                });
+            }
+        });
+
+        const pageCount = Math.ceil(landmarks.length / perPage);
+
+        const startOfPage = (page - 1) * perPage;
+
+        const landmarksInPage = landmarks.slice(startOfPage, startOfPage + perPage);
+
+        landmarks.sort((a, b) => a.name.localeCompare(b.name));
+
+        return {
+            landmarks: landmarksInPage,
+            totalPageCount: pageCount
+        }
     }
 }

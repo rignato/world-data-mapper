@@ -19,6 +19,17 @@ type Error {
   error: String!
 }
 
+type Landmark {
+  name: String!
+  owner: String!
+}
+
+type Landmarks {
+  error: String
+  landmarks: [Landmark!]!
+  totalPageCount: Float
+}
+
 type Map {
   _id: ID!
   name: String!
@@ -31,8 +42,10 @@ type Maps {
 }
 
 type Mutation {
+  addLandmark(_id: String!, landmark: String!): StatusResult!
   addMap(name: String!): StatusResult!
   addRegion(parentId: String!, region: RegionInput): RegionResult!
+  changeParent(_id: String!, parentId: String!): StatusResult!
   deleteMap(_id: String!): StatusResult!
   deleteRegion(_id: String!): StatusResult!
   editRegion(regionToEdit: EditRegionInput!): StatusResult!
@@ -45,8 +58,10 @@ type Mutation {
 }
 
 type Query {
+  getLandmarks(_id: String!, page: Int = 1, perPage: Int = 10): Landmarks!
   getMaps(page: Int = 1, perPage: Int = 10): Maps!
   getRegionById(_id: String!, reversed: Boolean, sortBy: String): RegionViewResult!
+  getRegionPath(_id: String!): RegionPathResult!
   getRegions(page: Int = 1, parentId: String!, perPage: Int = 10, reversed: Boolean, sortBy: String): Regions!
   getUser: UserResult!
 }
@@ -76,6 +91,15 @@ input RegionInput {
   path: [String!]!
 }
 
+type RegionPath {
+  _id: ID!
+  displayPath: [String!]!
+  name: String!
+  path: [String!]!
+}
+
+union RegionPathResult = Error | RegionPath
+
 union RegionResult = Error | Region
 
 type RegionView {
@@ -97,9 +121,10 @@ type RegionView {
 union RegionViewResult = Error | RegionView
 
 type Regions {
-  displayPath: [String!]
+  displayPath: [String!]!
   error: String
-  regions: [Region!]
+  path: [ID!]!
+  regions: [Region!]!
   totalPageCount: Float
 }
 

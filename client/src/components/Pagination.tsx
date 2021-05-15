@@ -8,7 +8,7 @@ type Props = {
     onPageChange: any;
 };
 
-const usePaginate = (currentPage: number, pageCount: number, neighbors: number) => {
+export const usePaginate = (currentPage: number, pageCount: number, neighbors: number) => {
     const pageNumbersWithDots: string[] = [];
     const updatePagination = (currentPageNew: number, pageCountNew: number, neighborsNew: number = neighbors) => {
         pageNumbersWithDots.length = 0;

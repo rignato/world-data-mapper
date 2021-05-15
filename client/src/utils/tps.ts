@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { createContext, useState } from 'react';
 
 export type Transaction = {
     redo: () => Promise<any>,
@@ -10,15 +10,14 @@ const redos: Transaction[] = [];
 
 export const useTPS = () => {
 
+
+
     const [hasUndo, setHasUndo] = useState(false);
     const [hasRedo, setHasRedo] = useState(false);
 
-    const checkHasUndo = () => {
-        return undos.length > 0;
-    };
-
-    const checkHasRedo = () => {
-        return redos.length > 0;
+    const updateState = () => {
+        setHasUndo(undos.length > 0);
+        setHasRedo(redos.length > 0);
     };
 
     const undo = async () => {
@@ -27,8 +26,7 @@ export const useTPS = () => {
             return;
         const ret = await transaction.undo();
         redos.push(transaction);
-        setHasUndo(checkHasUndo());
-        setHasRedo(checkHasRedo());
+        updateState();
         return ret;
     };
 
@@ -38,24 +36,23 @@ export const useTPS = () => {
             return;
         const ret = await transaction.redo();
         undos.push(transaction);
-        setHasUndo(checkHasUndo());
-        setHasRedo(checkHasRedo());
+        updateState();
         return ret;
     };
 
     const add = async (t: Transaction) => {
-        if (checkHasRedo())
-            redos.splice(0);
+        redos.splice(0);
         undos.push(t);
         const ret = await t.redo();
-        setHasUndo(checkHasUndo());
-        setHasRedo(checkHasRedo());
+        updateState();
         return ret;
     };
 
-    const clear = () => {
+    const clear = async () => {
         undos.splice(0);
         redos.splice(0);
+        updateState();
+        console.log(undos, redos, hasUndo, hasRedo)
     };
 
     return {
@@ -66,4 +63,13 @@ export const useTPS = () => {
         tpsAdd: add,
         tpsClear: clear
     };
+};
+
+export type TPS = {
+    hasUndo: boolean,
+    hasRedo: boolean,
+    tpsUndo: () => any,
+    tpsRedo: () => any,
+    tpsAdd: (t: Transaction) => any,
+    tpsClear: () => void
 };

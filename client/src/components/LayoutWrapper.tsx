@@ -29,7 +29,9 @@ type Props = {
     userLoading?: boolean,
     loadingStart?: boolean,
     loadingEnd?: boolean,
-    fadeOut?: boolean
+    fadeOut?: boolean,
+    path: string[],
+    displayPath: string[]
 };
 
 const LayoutWrapper = ({
@@ -44,7 +46,9 @@ const LayoutWrapper = ({
     userLoading,
     loadingStart,
     loadingEnd,
-    fadeOut
+    fadeOut,
+    path,
+    displayPath
 }: Props) => {
 
     let location = useLocation<LocationState>();
@@ -79,7 +83,7 @@ const LayoutWrapper = ({
             {
                 navbar &&
                 <div className="hero-head">
-                    <Navbar user={user} refetchUser={refetchUser} />
+                    <Navbar user={user} refetchUser={refetchUser} path={path} displayPath={displayPath} />
                 </div>
             }
 

@@ -12,8 +12,7 @@ import { IAddRegion, IDeleteRegion, IGetRegions, Region, RegionResult } from '..
 import { useHistory, useLocation, useParams } from 'react-router';
 import { ADD_REGION, DELETE_REGION } from '../gql/regionMutations';
 import Loader from 'react-loader-spinner';
-import { Link } from 'react-router-dom';
-import { useTPS } from '../utils/tps';
+import { TPS } from '../utils/tps';
 import { gqlSanitizeInput } from '../utils/utils';
 
 
@@ -21,11 +20,18 @@ type Params = {
     mapId: string;
 }
 
-const RegionTable = () => {
+type Props = {
+    tps: TPS;
+    setPath: React.Dispatch<React.SetStateAction<string[]>>;
+    setDisplayPath: React.Dispatch<React.SetStateAction<string[]>>;
+}
+
+const RegionTable = ({ tps, setPath, setDisplayPath }: Props) => {
 
     const routeParams = useParams<Params>();
 
     let location = useLocation();
+    let history = useHistory();
 
     const searchParams = new URLSearchParams(location.search);
 
@@ -65,8 +71,15 @@ const RegionTable = () => {
     useEffect(() => {
         (async () => {
             await refetchRegions();
+            if (regionData && !regionData.getRegions.error) {
+                setDisplayPath(regionData.getRegions.displayPath);
+                setPath(regionData.getRegions.path);
+            } else {
+                setPath([]);
+                setDisplayPath([]);
+            }
         })()
-    }, [page, reversed, sortBy, refetchRegions, parentId, location]);
+    }, [page, reversed, sortBy, refetchRegions, parentId, location, regionData, setDisplayPath, setPath]);
 
     useEffect(() => {
         if (regionData && regionData.getRegions.regions.length === 0 && page > 1) {
@@ -77,11 +90,13 @@ const RegionTable = () => {
     const [addRegion] = useMutation<IAddRegion>(ADD_REGION);
     const [deleteRegion] = useMutation<IDeleteRegion>(DELETE_REGION);
 
-    const { tpsAdd, tpsClear, tpsUndo, hasUndo, tpsRedo, hasRedo } = useTPS();
+    const { tpsAdd, tpsClear, tpsUndo, hasUndo, tpsRedo, hasRedo } = tps;
 
     const handlePageChange = async (newPage: number) => {
         setPage(newPage);
     }
+
+    const [regionToDelete, setRegionToDelete] = useState<Region | undefined>();
 
     const handleAddRegion = async () => {
 
@@ -126,7 +141,7 @@ const RegionTable = () => {
         });
     };
 
-    const handleDeleteRegion = async (region: Region) => {
+    const handleConfirmDeleteRegion = async (region: Region) => {
         await tpsAdd({
             redo: async () => {
                 if (!region) {
@@ -165,6 +180,11 @@ const RegionTable = () => {
                 }
             }
         });
+        setRegionToDelete(undefined);
+    };
+
+    const handleDeleteRegion = (region: Region) => {
+        setRegionToDelete(region);
     };
 
     const handleSortRegion = async (key: 'name' | 'capital' | 'leader') => {
@@ -187,6 +207,25 @@ const RegionTable = () => {
 
     return (
         <div className="container" >
+            {
+                regionToDelete &&
+                <div className={`modal ${regionToDelete && "is-active"}`}>
+                    <div className="modal-background" />
+                    <div className="modal-card">
+                        <header className="modal-card-head">
+                            <p className="modal-card-title">Confirm subregion deletion</p>
+                            <button className="delete" aria-label="close" />
+                        </header>
+                        <section className="modal-card-body has-text-dark">
+                            Are you sure you want to delete the subregion "{regionToDelete.name}"?
+                    </section>
+                        <footer className="modal-card-foot">
+                            <button className="button is-danger" onClick={() => handleConfirmDeleteRegion(regionToDelete)}>Yes, delete</button>
+                            <button className="button" onClick={() => setRegionToDelete(undefined)}>No, cancel</button>
+                        </footer>
+                    </div>
+                </div>
+            }
 
 
             <div className={`level mt-0 mb-${searchParams.get("subregion") ? "0" : "5"}`}>
@@ -211,15 +250,17 @@ const RegionTable = () => {
                     <div className="title has-text-weight-medium">Region name: </div>
                     {
                         searchParams.get("subregion") ?
-                            <Link to={{
-                                pathname: `${location.pathname}/view`,
-                                search: location.search
-                            }}>
-                                <div className={`title has-text-weight-medium button has-text-info is-ghost`}>{
+                            <button className={`title has-text-weight-medium button has-text-info is-ghost`} onClick={() => {
+                                tpsClear();
+                                history.push({
+                                    pathname: `${location.pathname}/view`,
+                                    search: `subregion=${searchParams.get("subregion")}${sortBy ? `&sortBy=${sortBy}` : ""}&reversed=${reversed}`
+                                })
+                            }}>{
                                     name
                                 }
-                                </div>
-                            </Link> :
+                            </button>
+                            :
                             <div className={`title has-text-weight-medium pl-5`}>{
                                 name
                             }
@@ -233,7 +274,7 @@ const RegionTable = () => {
             <table className="table is-fullwidth is-hoverable is-rounded mb-0">
                 <thead >
                     <tr className="has-background-info">
-                        <th className="px-0 mx-0 table-col">
+                        <th className="table-col">
                             <button
                                 className={
                                     `${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`
@@ -247,7 +288,7 @@ const RegionTable = () => {
                             </button>
 
                         </th>
-                        <th className="px-0 mx-0 table-col">
+                        <th className="table-col">
                             <button
                                 className={
                                     `${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`
@@ -261,7 +302,7 @@ const RegionTable = () => {
                             </button>
 
                         </th>
-                        <th className="px-0 mx-0 table-col">
+                        <th className="table-col">
                             <button
                                 className={
                                     `${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`
@@ -274,7 +315,7 @@ const RegionTable = () => {
                                 </span>
                             </button>
                         </th>
-                        <th className="px-4">
+                        <th className="">
                             <div className={`mt-0 py-2 ${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} has-text-light has-text-weight-semibold is-size-5`}>Flag</div>
                         </th>
                         <th className="px-5 table-col">
@@ -282,7 +323,7 @@ const RegionTable = () => {
 
                         </th>
                         <th>
-                            <button className={`${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button is-primary is-light my-2 is-small`} onClick={handleAddRegion}>
+                            <button className={`${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button is-primary is-light my-2 px-3 is-small`} onClick={handleAddRegion}>
                                 <span className="icon">
                                     <FontAwesomeIcon icon={faPlus} size="2x" />
                                 </span>
@@ -313,6 +354,9 @@ const RegionTable = () => {
                                         region={region}
                                         handleDelete={handleDeleteRegion}
                                         refetch={refetchRegions}
+                                        tps={tps}
+                                        sortBy={sortBy}
+                                        reversed={reversed}
                                     />
                                     :
                                     <RegionTableItem
@@ -320,6 +364,9 @@ const RegionTable = () => {
                                         empty
                                         handleDelete={handleDeleteRegion}
                                         refetch={refetchRegions}
+                                        tps={tps}
+                                        sortBy={sortBy}
+                                        reversed={reversed}
                                     />
                             ))
                     }

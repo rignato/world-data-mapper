@@ -37,7 +37,7 @@ const UpdateAccount = ({ user, refetch }: Props) => {
 
     const [error, setError] = useState("");
 
-    const history = useHistory<LocationState>();
+    let history = useHistory<LocationState>();
 
     const [update] = useMutation<IUpdate>(UPDATE);
     const [updatePassword] = useMutation<IUpdatePassword>(UPDATE_PASSWORD);
