@@ -15,10 +15,22 @@ export const ADD_REGION = gql`
     }
 `;
 
+export const ADD_REGIONS = gql`
+    mutation AddRegions($parentId: String!, $regions: [RegionInput!]!) {
+      addRegions(parentId: $parentId, regions: $regions) {
+        success
+        error
+      }
+    }
+`;
+
 export const DELETE_REGION = gql`
+    ${REGION_FIELDS}
     mutation DeleteRegion($_id: String!) {
       deleteRegion(_id: $_id) {
-        success
+        regions {
+          ...RegionFields
+        }
         error
       }
     }

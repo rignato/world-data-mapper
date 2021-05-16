@@ -9,19 +9,23 @@ import Login from './components/Login';
 import { useQuery } from '@apollo/client';
 import { IGetUser, User } from './types/User';
 import { GET_USER } from './gql/userQueries';
-import Loader from 'react-loader-spinner';
 import MapSelect from './components/MapSelect';
 import RegionTable from './components/RegionTable';
 import RegionViewer from './components/RegionViewer';
 import UpdateAccount from './components/UpdateAccount';
 import { useTPS } from './utils/tps';
-import { getFlagURL } from './utils/utils';
 
 const App = () => {
 
   const { data: userData, loading: userLoading, error: userError, refetch: refetchUser } = useQuery<IGetUser>(GET_USER);
 
   const tps = useTPS();
+
+  useEffect(() => {
+    if (userError || !userData || 'error' in userData.getUser) {
+      tps.tpsClear();
+    }
+  }, [userData, userError, tps]);
 
   const [path, setPath] = useState<string[]>([]);
   const [displayPath, setDisplayPath] = useState<string[]>([]);
@@ -116,7 +120,7 @@ const App = () => {
             fadeOut={fadeOut}
             path={path}
             displayPath={displayPath}
-            body={<MapSelect user={userData?.getUser} fadeIn={fadeIn} />}
+            body={<MapSelect tps={tps} user={userData?.getUser} fadeIn={fadeIn} />}
           />
         </Route>
 

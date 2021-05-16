@@ -221,13 +221,47 @@ export class RegionResolvers {
     }
 
     @Mutation(() => StatusResult, { nullable: false })
+    async addRegions(
+        @Arg("parentId") parentId: string,
+        @Ctx("req") req: RequestWithUserId,
+        @Arg("regions", () => [RegionInput]) regions: RegionInput[]
+    ) {
+        if (!req.userId)
+            return {
+                error: "No current user in session."
+            };
+
+        const parent = await RegionModel.findOne({
+            _id: Types.ObjectId(parentId),
+            ownerId: req.userId
+        });
+
+        if (!parent)
+            return {
+                error: `No parent found with _id: ${parentId} for current user`
+            };
+
+        for (let region of regions) {
+            const { path, ...regionWithoutPath } = region;
+
+            await RegionModel.create({
+                ...regionWithoutPath,
+                path: region.path.map((id) => Types.ObjectId(id)),
+                ownerId: req.userId
+            });
+        }
+
+        return { success: true };
+    }
+
+    @Mutation(() => Regions, { nullable: false })
     async deleteRegion(
         @Arg("_id") _id: string,
         @Ctx("req") req: RequestWithUserId
     ) {
         if (!req.userId)
             return {
-                success: false,
+                regions: [],
                 error: "No current user in session."
             };
 
@@ -238,13 +272,13 @@ export class RegionResolvers {
 
         if (!region || region.path.length == 0)
             return {
-                success: false,
+                regions: [],
                 error: `No region found with _id: ${_id} for current user`
             };
 
         const childPathQuery = `path.${region.path.length}`;
 
-        const regionAndChildren = await RegionModel.deleteMany({
+        const regionAndChildrenQuery = {
             $or: [{
                 ownerId: req.userId,
                 _id: region._id
@@ -252,13 +286,20 @@ export class RegionResolvers {
                 ownerId: req.userId,
                 [childPathQuery]: region._id
             }]
+        };
 
-        });
-        if (regionAndChildren)
-            return { success: true };
+        const regionAndChildren = await RegionModel.find(regionAndChildrenQuery);
+        if (regionAndChildren) {
+            await RegionModel.deleteMany(regionAndChildrenQuery);
+
+            return {
+                regions: regionAndChildren
+            };
+        }
+
 
         return {
-            success: false,
+            regions: [],
             error: `Error deleting region with _id: ${_id}`
         };
     }

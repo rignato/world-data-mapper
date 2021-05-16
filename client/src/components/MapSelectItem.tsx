@@ -5,15 +5,17 @@ import { faTrashAlt as farTrashAlt, faEdit as farEdit } from '@fortawesome/free-
 import React, { useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { Map } from '../types/Map';
+import { TPS } from '../utils/tps';
 
 type Props = {
+    tps: TPS,
     name: string,
     _id: string,
     renameCallback: (_id: string, name: string) => Promise<void>,
     deleteCallback: (map: Map) => void
 }
 
-const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback }: Props) => {
+const MapSelectItem = ({ tps, _id, name: originalName, renameCallback, deleteCallback }: Props) => {
 
     const [editingName, setEditingName] = useState(false);
 
@@ -36,6 +38,8 @@ const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback
         await deleteCallback({ _id: _id, name: name });
     }
 
+    const { tpsClear } = tps;
+
     return (
         <a className="panel-block panel-map-item" >
             <div className="level">
@@ -47,7 +51,11 @@ const MapSelectItem = ({ _id, name: originalName, renameCallback, deleteCallback
                                 <input className="input is-size-5" type="text" placeholder="Enter map name" defaultValue={name} onBlur={handleEditingName} autoFocus={true} />
                                 :
                                 <button className="button is-ghost has-text-info is-size-5" onClick={
-                                    () => history.push(`/maps/${_id}`)
+                                    () => {
+                                        tpsClear();
+                                        history.push(`/maps/${_id}`)
+                                    }
+
                                 }>{name}</button>
                         }
                     </div>

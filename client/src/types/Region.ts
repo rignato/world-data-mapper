@@ -49,6 +49,11 @@ export type Regions = {
     path: string[];
 };
 
+export type RegionsLite = {
+    error: string;
+    regions: Region[];
+};
+
 export type Landmark = {
     _id: string;
     name: string;
@@ -78,8 +83,12 @@ export type IAddRegion = {
     addRegion: RegionResult;
 };
 
+export type IAddRegions = {
+    addRegions: StatusResult;
+};
+
 export type IDeleteRegion = {
-    deleteRegion: StatusResult;
+    deleteRegion: RegionsLite;
 };
 
 export type IEditRegion = {

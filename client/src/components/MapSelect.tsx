@@ -10,13 +10,15 @@ import Loader from 'react-loader-spinner';
 import { useEffect, useState } from 'react';
 import Pagination from './Pagination';
 import { validateName } from '../utils/utils';
+import { TPS } from '../utils/tps';
 
 type Props = {
+    tps: TPS,
     user?: UserResult;
     fadeIn?: boolean;
 }
 
-const MapSelect = ({ user, fadeIn }: Props) => {
+const MapSelect = ({ tps, user, fadeIn }: Props) => {
 
     const perPage = 6;
     const [page, setPage] = useState(1);
@@ -142,6 +144,7 @@ const MapSelect = ({ user, fadeIn }: Props) => {
                                     :
                                     mapsData && mapsData.getMaps.maps.map((map) => (
                                         <MapSelectItem
+                                            tps={tps}
                                             key={map._id}
                                             name={map.name}
                                             _id={map._id}

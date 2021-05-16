@@ -8,9 +8,9 @@ import RegionTableItem from './RegionTableItem';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_REGIONS } from '../gql/regionQueries';
 import React, { useEffect, useState } from 'react';
-import { IAddRegion, IDeleteRegion, IGetRegions, Region, RegionResult } from '../types/Region';
+import { IAddRegion, IAddRegions, IDeleteRegion, IGetRegions, Region, RegionResult } from '../types/Region';
 import { useHistory, useLocation, useParams } from 'react-router';
-import { ADD_REGION, DELETE_REGION } from '../gql/regionMutations';
+import { ADD_REGION, ADD_REGIONS, DELETE_REGION } from '../gql/regionMutations';
 import Loader from 'react-loader-spinner';
 import { TPS } from '../utils/tps';
 import { gqlSanitizeInput } from '../utils/utils';
@@ -89,6 +89,7 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
     }, [regionData, page]);
 
     const [addRegion] = useMutation<IAddRegion>(ADD_REGION);
+    const [addRegions] = useMutation<IAddRegions>(ADD_REGIONS);
     const [deleteRegion] = useMutation<IDeleteRegion>(DELETE_REGION);
 
     const { tpsAdd, tpsClear, tpsUndo, hasUndo, tpsRedo, hasRedo } = tps;
@@ -143,12 +144,11 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
     };
 
     const handleConfirmDeleteRegion = async (region: Region) => {
+        if (!region)
+            return;
+        let regions: Region[] = [];
         await tpsAdd({
             redo: async () => {
-                if (!region) {
-                    console.error("Cannot undo addRegion: no region found.");
-                    return;
-                }
                 const { data } = await deleteRegion({ variables: { _id: region._id } });
                 if (!data) {
                     console.error("Unknown error occurred.");
@@ -160,23 +160,23 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
                 if (deleteRes.error)
                     console.error(deleteRes.error);
                 else {
+                    regions = deleteRes.regions.map((region) => gqlSanitizeInput(region));
                     await refetchRegions();
                 }
             },
             undo: async () => {
                 console.log(region);
-                const { data } = await addRegion({ variables: { parentId: parentId, region: gqlSanitizeInput(region) } });
+                const { data } = await addRegions({ variables: { parentId: parentId, regions: regions } });
                 if (!data) {
                     console.error("Unknown error occurred.");
                     return;
                 }
 
-                const regionRes = data.addRegion;
+                const regionRes = data.addRegions;
 
-                if ("error" in regionRes)
+                if (regionRes.error)
                     console.error(regionRes.error)
                 else {
-                    region = regionRes;
                     await refetchRegions();
                 }
             }
@@ -204,49 +204,6 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
             }
         });
     };
-
-
-    const [selectedRow, setSelectedRow] = useState(-1);
-    const [selectedCol, setSelectedCol] = useState(-1);
-
-    const moveSelection = (row: number, col: number) => {
-        console.log(row, col)
-        setSelectedRow(row);
-        setSelectedCol(col);
-    };
-
-    // useEffect(() => {
-    //     const handleArrows = async (e: KeyboardEvent) => {
-    //         switch (e.key) {
-    //             case "ArrowLeft":
-    //                 if (regionData && selectedCol > 0) {
-    //                     // console.log("LEFT")
-    //                     moveSelection(selectedRow, selectedCol - 1);
-    //                 }
-    //                 break;
-    //             case "ArrowRight":
-    //                 if (regionData && selectedCol < 2) {
-    //                     console.log("RIGHT", selectedRow, selectedCol)
-    //                     moveSelection(selectedRow, selectedCol + 1);
-    //                 }
-    //                 break;
-    //             case "ArrowUp":
-    //                 if (regionData && selectedRow > 0) {
-    //                     console.log("UP", selectedRow, selectedCol)
-    //                     moveSelection(selectedRow - 1, selectedCol);
-    //                 }
-    //                 break;
-    //             case "ArrowDown":
-    //                 if (regionData && selectedRow < regionData.getRegions.regions.length - 1) {
-    //                     moveSelection(selectedRow + 1, selectedCol);
-    //                 }
-    //                 break;
-    //         }
-    //     };
-    //     window.addEventListener('keydown', handleArrows);
-    //     return () => window.removeEventListener('keydown', handleArrows);
-    //     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // }, [])
 
     return (
         <div className="container" >
@@ -294,7 +251,6 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
                     {
                         searchParams.get("subregion") ?
                             <button className={`title has-text-weight-medium button has-text-info is-ghost`} onClick={() => {
-                                tpsClear();
                                 history.push({
                                     pathname: `${location.pathname}/view`,
                                     search: `subregion=${searchParams.get("subregion")}${sortBy ? `&sortBy=${sortBy}` : ""}&reversed=${reversed}`
@@ -331,7 +287,7 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
                             </button>
 
                         </th>
-                        <th className="table-col">
+                        <th className="table-col px-0">
                             <button
                                 className={
                                     `${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`
@@ -345,7 +301,7 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
                             </button>
 
                         </th>
-                        <th className="table-col">
+                        <th className="table-col px-0">
                             <button
                                 className={
                                     `${regionLoading || !regionData || !regionData.getRegions ? "is-invisible" : ""} button icon-text is-ghost has-text-light has-text-weight-semibold is-size-5`
@@ -392,9 +348,6 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
                                 region
                                     ?
                                     <RegionTableItem
-                                        selectedRow={selectedRow}
-                                        selectedCol={selectedCol}
-                                        row={index}
                                         key={region._id}
                                         mapId={routeParams.mapId}
                                         region={region}
@@ -404,13 +357,9 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
                                         sortBy={sortBy}
                                         reversed={reversed}
                                         displayPath={displayPath}
-                                        moveSelection={moveSelection}
                                     />
                                     :
                                     <RegionTableItem
-                                        selectedRow={selectedRow}
-                                        selectedCol={selectedCol}
-                                        row={index}
                                         key={`empty_${index}`}
                                         empty
                                         handleDelete={handleDeleteRegion}
@@ -419,7 +368,6 @@ const RegionTable = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
                                         sortBy={sortBy}
                                         reversed={reversed}
                                         displayPath={displayPath}
-                                        moveSelection={moveSelection}
                                     />
                             ))
                     }

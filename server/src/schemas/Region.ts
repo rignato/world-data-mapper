@@ -232,7 +232,7 @@ export class Regions {
     error: string;
 
     @Field({ defaultValue: 0 })
-    totalPageCount: number;
+    totalPageCount?: number;
 
     @Field(() => [String])
     displayPath?: string[]

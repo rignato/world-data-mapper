@@ -10,10 +10,6 @@ import { IEditRegion, IGetRegions, Region } from '../types/Region';
 import { getFlagURL, truncateString } from '../utils/utils';
 
 type Props = {
-    selectedRow: number,
-    selectedCol: number,
-    row: number,
-    moveSelection: (row: number, col: number) => void,
     tps: TPS,
     displayPath: string[],
     mapId?: string,
@@ -25,7 +21,7 @@ type Props = {
     refetch: (variables?: Partial<OperationVariables> | undefined) => Promise<ApolloQueryResult<IGetRegions>>
 };
 
-const RegionTableItem = ({ row, selectedRow, selectedCol, moveSelection, tps, mapId, region, empty, handleDelete, refetch, sortBy, reversed, displayPath }: Props) => {
+const RegionTableItem = ({ tps, mapId, region, empty, handleDelete, refetch, sortBy, reversed, displayPath }: Props) => {
 
     const [editingName, setEditingName] = useState(false);
     const [editingCapital, setEditingCapital] = useState(false);
@@ -36,22 +32,32 @@ const RegionTableItem = ({ row, selectedRow, selectedCol, moveSelection, tps, ma
     const [leader, setLeader] = useState(region ? region.leader : "");
 
     useEffect(() => {
-        (async () => {
-            if (editingName) {
-                await handleEditName();
+        const handleArrows = async (e: KeyboardEvent) => {
+            switch (e.key) {
+                case "ArrowLeft":
+                    if (editingCapital) {
+                        await handleEditCapital();
+                        setEditingName(true);
+                    } else if (editingLeader) {
+                        await handleEditLeader();
+                        setEditingCapital(true);
+                    }
+                    break;
+                case "ArrowRight":
+                    if (editingName) {
+                        await handleEditName();
+                        setEditingCapital(true);
+                    } else if (editingCapital) {
+                        await handleEditCapital();
+                        setEditingLeader(true);
+                    }
+                    break;
             }
-            else if (editingCapital) {
-                await handleEditCapital();
-            }
-            else if (editingLeader) {
-                await handleEditLeader();
-            }
-            setEditingName(row === selectedRow && selectedCol === 0);
-            setEditingCapital(row === selectedRow && selectedCol === 1);
-            setEditingLeader(row === selectedRow && selectedCol === 2);
-        })();
+        };
+        window.addEventListener('keydown', handleArrows);
+        return () => window.removeEventListener('keydown', handleArrows);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedRow, selectedCol]);
+    }, [editingCapital, editingName, editingLeader])
 
     const [editRegion] = useMutation<IEditRegion>(EDIT_REGION);
 
@@ -106,6 +112,7 @@ const RegionTableItem = ({ row, selectedRow, selectedCol, moveSelection, tps, ma
         const newName = name;
         if (newName.length > 0 && region && newName !== region.name)
             await handleEdit('name', newName);
+        setEditingName(false);
     };
 
     const handleEditingName = (e: React.FormEvent<HTMLInputElement>) => {
@@ -116,6 +123,7 @@ const RegionTableItem = ({ row, selectedRow, selectedCol, moveSelection, tps, ma
         const newCapital = capital;
         if (newCapital.length > 0 && region && newCapital !== region.capital)
             await handleEdit('capital', newCapital);
+        setEditingCapital(false);
     };
 
     const handleEditingCapital = (e: React.FormEvent<HTMLInputElement>) => {
@@ -126,6 +134,7 @@ const RegionTableItem = ({ row, selectedRow, selectedCol, moveSelection, tps, ma
         const newLeader = leader;
         if (newLeader.length > 0 && region && newLeader !== region.leader)
             await handleEdit('leader', newLeader);
+        setEditingLeader(false);
     };
 
     const handleEditingLeader = (e: React.FormEvent<HTMLInputElement>) => {
@@ -143,11 +152,10 @@ const RegionTableItem = ({ row, selectedRow, selectedCol, moveSelection, tps, ma
                             {
                                 editingName
                                     ?
-                                    <input className="input is-size-6 name-input" type="text" defaultValue={region.name} onChange={handleEditingName} onBlur={() => moveSelection(-1, -1)} autoFocus={true} />
+                                    <input className="input is-size-6 name-input" type="text" defaultValue={region.name} onChange={handleEditingName} onBlur={() => handleEditName()} autoFocus={true} />
                                     :
                                     <button className="button is-ghost has-text-info is-justify-content-start is-size-6 name-input mx-0"
                                         onClick={() => {
-                                            tpsClear();
                                             history.push({
                                                 pathname: `/maps/${mapId}`,
                                                 search: `subregion=${region._id}${sortBy ? `&sortBy=${sortBy}` : ""}&reversed=${reversed}`
@@ -157,7 +165,7 @@ const RegionTableItem = ({ row, selectedRow, selectedCol, moveSelection, tps, ma
                                     </button>
                             }
 
-                            <button className="button is-small is-light is-info has-text-info" disabled={false} onClick={() => moveSelection(row, 0)}>
+                            <button className="button is-small is-light is-info has-text-info" disabled={false} onClick={() => setEditingName(true)}>
                                 <span
                                     className={`icon click-icon ${false ? "has-text-grey-lighter" : "has-text-info"}`}
 
@@ -173,16 +181,16 @@ const RegionTableItem = ({ row, selectedRow, selectedCol, moveSelection, tps, ma
             <td className="py-1 pl-5">{
                 region && (editingCapital
                     ?
-                    <input className="input" type="text" defaultValue={region.capital} onChange={handleEditingCapital} onBlur={() => moveSelection(-1, -1)} autoFocus={true} />
+                    <input className="input" type="text" defaultValue={region.capital} onChange={handleEditingCapital} onBlur={() => handleEditCapital()} autoFocus={true} />
                     :
-                    <div className="is-size-6 pt-2 is-clickable" onClick={() => moveSelection(row, 1)}>{truncateString(region.capital, 25)}</div>
+                    <div className="is-size-6 pt-2 is-clickable" onClick={() => setEditingCapital(true)}>{truncateString(region.capital, 25)}</div>
                 )}</td>
             <td className="py-1 pl-5">{
                 region && (editingLeader
                     ?
-                    <input className="input" type="text" defaultValue={region.leader} onChange={handleEditingLeader} onBlur={() => moveSelection(-1, -1)} autoFocus={true} />
+                    <input className="input" type="text" defaultValue={region.leader} onChange={handleEditingLeader} onBlur={() => handleEditLeader()} autoFocus={true} />
                     :
-                    <div className="is-size-6 pt-2 is-clickable" onClick={() => moveSelection(row, 2)}>{truncateString(region.leader, 20)}</div>
+                    <div className="is-size-6 pt-2 is-clickable" onClick={() => setEditingLeader(true)}>{truncateString(region.leader, 20)}</div>
                 )}</td>
             <td className="pb-0 pt-1 ">
                 <figure className={`image is-48x48 pt-3 px-1 ${!empty && "has-background-grey-lighter"}`}>
@@ -194,7 +202,6 @@ const RegionTableItem = ({ row, selectedRow, selectedCol, moveSelection, tps, ma
                     <button
                         className="button is-ghost has-text-info is-size-6 has-text-center"
                         onClick={() => {
-                            tpsClear();
                             history.push({
                                 pathname: `/maps/${mapId}/view`,
                                 search: `subregion=${region._id}${sortBy ? `&sortBy=${sortBy}` : ""}&reversed=${reversed}`

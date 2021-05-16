@@ -61,10 +61,11 @@ type Mutation {
   addLandmark(_id: String!, landmark: LandmarkInput!): LandmarkResult!
   addMap(name: String!): StatusResult!
   addRegion(parentId: String!, region: RegionInput): RegionResult!
+  addRegions(parentId: String!, regions: [RegionInput!]!): StatusResult!
   changeParent(_id: String!, parentId: String!): StatusResult!
   deleteLandmark(landmarkId: String!, regionId: String!): StatusResult!
   deleteMap(_id: String!): StatusResult!
-  deleteRegion(_id: String!): StatusResult!
+  deleteRegion(_id: String!): Regions!
   editLandmark(editLandmark: EditLandmarkInput!, regionId: String!): StatusResult!
   editRegion(regionToEdit: EditRegionInput!): StatusResult!
   login(email: String!, password: String!): UserResult!

@@ -535,7 +535,6 @@ const RegionViewer = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
                     <div className={`level mt-0 mb-5`}>
                         <div className="level-item">
                             <button className="button is-dark" onClick={() => {
-                                tpsClear();
                                 console.log(reversed);
                                 history.push({
                                     pathname: location.pathname,
@@ -556,7 +555,6 @@ const RegionViewer = ({ tps, setPath, setDisplayPath, displayPath }: Props) => {
                         </div>
                         <div className="level-item">
                             <button className="button is-dark" onClick={() => {
-                                tpsClear();
                                 console.log(reversed);
                                 history.push({
                                     pathname: location.pathname,
